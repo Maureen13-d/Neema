@@ -12,6 +12,8 @@ import { applyBandFeedback } from '../services/bandFeedback';
 import { acknowledgeAndStop, startEscalation, type EscalationHandle } from '../services/escalation';
 import { LocationError, requestAlertLocation } from '../services/location';
 import { getMessageText, speakMessageKey } from '../services/speech';
+import { getReadiness, type ReadinessReport } from '../services/readiness';
+import { lockSession, setPin, unlockWithPin } from '../services/auth';
 import { db } from '../storage/db';
 
 type SourceKind = 'simulator' | 'bluetooth';
@@ -26,6 +28,8 @@ export function Harness() {
   const [symptom, setSymptom] = useState('headache');
   const [log, setLog] = useState<string[]>([]);
   const [smsHref, setSmsHref] = useState<string | null>(null);
+  const [pin, setPinInput] = useState('1234');
+  const [readiness, setReadiness] = useState<ReadinessReport | null>(null);
   const escalationRef = useRef<EscalationHandle | null>(null);
   const lastLevelRef = useRef<string | null>(null);
 
@@ -33,6 +37,7 @@ export function Harness() {
   const pipeline = useMemo(() => createVitalsPipeline(), []);
 
   useEffect(() => {
+    void getReadiness().then(setReadiness);
     const id = window.setInterval(async () => {
       const handle = escalationRef.current;
       if (!handle) return;
@@ -45,6 +50,10 @@ export function Harness() {
     }, 5_000);
     return () => window.clearInterval(id);
   }, []);
+
+  async function refreshReadiness() {
+    setReadiness(await getReadiness());
+  }
 
   useEffect(() => {
     const unsub = band.onVitals(async (s) => {
@@ -155,7 +164,10 @@ export function Harness() {
       reasonCode: triage.reasons[0] ?? 'alert',
       ...(locationUrl ? { locationUrl } : {}),
     };
-    const { alert, smsLinks } = await raiseAlert(draft, contacts);
+    const { alert, smsLinks } = await raiseAlert(draft, contacts, {
+      allowDemo: true,
+      skipConsent: true,
+    });
     const first = smsLinks[0];
     if (first) setSmsHref(first.href);
     if (level === 'RED') {
@@ -197,6 +209,82 @@ export function Harness() {
       <p style={{ color: '#555', marginTop: 0 }}>
         Dev-only live view. Not the mother-facing UI.
       </p>
+
+      <section
+        style={{
+          background: readiness?.fieldReady ? '#e8f5e9' : '#fff8e1',
+          borderRadius: 8,
+          padding: 12,
+          marginBottom: 16,
+          fontSize: 13,
+        }}
+      >
+        <strong>Field readiness:</strong>{' '}
+        {readiness?.fieldReady ? 'READY' : 'DEMO ONLY'}
+        <div style={{ marginTop: 6 }}>
+          config signed: {readiness?.configSigned ? 'yes' : 'no'} · messages reviewed:{' '}
+          {readiness?.messagesReviewed ? 'yes' : 'no'} · hardware QA:{' '}
+          {readiness?.hardwareEngineeringPass ? 'pass' : 'pending'} · consent:{' '}
+          {readiness?.consentOnFile ? 'yes' : 'no'} · session:{' '}
+          {readiness?.sessionUnlocked ? 'unlocked' : 'locked'}
+        </div>
+        {readiness && readiness.blockers.length > 0 ? (
+          <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+            {readiness.blockers.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        ) : null}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+          <input
+            value={pin}
+            onChange={(e) => setPinInput(e.target.value)}
+            style={{ width: 80 }}
+            aria-label="PIN"
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await setPin(pin);
+                setLog((l) => ['PIN set / session unlocked', ...l]);
+                await refreshReadiness();
+              } catch (err) {
+                setLog((l) => [`PIN set failed: ${String(err)}`, ...l]);
+              }
+            }}
+          >
+            Set PIN
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await unlockWithPin(pin);
+                setLog((l) => ['Unlocked', ...l]);
+                await refreshReadiness();
+              } catch (err) {
+                setLog((l) => [`Unlock failed: ${String(err)}`, ...l]);
+              }
+            }}
+          >
+            Unlock
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              lockSession();
+              setLog((l) => ['Locked', ...l]);
+              await refreshReadiness();
+            }}
+          >
+            Lock
+          </button>
+          <button type="button" onClick={() => void refreshReadiness()}>
+            Refresh gates
+          </button>
+        </div>
+      </section>
 
       <section style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
         <select value={sourceKind} onChange={(e) => setSourceKind(e.target.value as SourceKind)}>
