@@ -1,59 +1,49 @@
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useLocale } from '../hooks/useLocale';
+import { IconBand, IconHome, IconMore, IconPlus, IconUser } from './icons';
+import { QuickAddSheet } from './QuickAddSheet';
 
-function IconHome() {
+function Item({ to, label, icon }: { to: string; label: string; icon: ReactNode }) {
   return (
-    <svg className="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
-    </svg>
-  );
-}
-function IconSigns() {
-  return (
-    <svg className="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 8v5" />
-      <circle cx="12" cy="16" r="0.8" fill="currentColor" />
-    </svg>
-  );
-}
-function IconPassport() {
-  return (
-    <svg className="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <rect x="5" y="3" width="14" height="18" rx="2" />
-      <circle cx="12" cy="10" r="2.5" />
-      <path d="M8 16.5c1.2-1.4 6.8-1.4 8 0" />
-    </svg>
-  );
-}
-function IconMore() {
-  return (
-    <svg className="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <circle cx="6" cy="12" r="1.4" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
-      <circle cx="18" cy="12" r="1.4" fill="currentColor" />
-    </svg>
+    <NavLink to={to} className={({ isActive }) => (isActive ? 'active' : undefined)}>
+      <span className="nav-ico">{icon}</span>
+      {label}
+    </NavLink>
   );
 }
 
-/** Persistent guardian navigation — fewer destinations, clearer labels. */
+/** Main navigation: four places and one centre "+" for adding a reading. */
 export function BottomNav() {
   const { t } = useLocale();
-  const items = [
-    { to: '/home', label: t('home'), Icon: IconHome },
-    { to: '/symptoms', label: t('signs'), Icon: IconSigns },
-    { to: '/passport', label: t('passport'), Icon: IconPassport },
-    { to: '/settings', label: t('more'), Icon: IconMore },
-  ] as const;
+  const [open, setOpen] = useState(false);
+  const fabRef = useRef<HTMLButtonElement>(null);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    fabRef.current?.focus();
+  }, []);
 
   return (
-    <nav className="bottom-nav" aria-label="Main">
-      {items.map(({ to, label, Icon }) => (
-        <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : undefined)}>
-          <Icon />
-          {label}
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      <nav className="bottom-nav" aria-label="Main">
+        <Item to="/home" label={t('home')} icon={<IconHome />} />
+        <Item to="/vitals" label={t('band')} icon={<IconBand />} />
+        <button
+          ref={fabRef}
+          type="button"
+          className="fab"
+          aria-label={t('add')}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+        >
+          <IconPlus />
+        </button>
+        <Item to="/passport" label={t('passport')} icon={<IconUser />} />
+        <Item to="/settings" label={t('more')} icon={<IconMore />} />
+      </nav>
+      <QuickAddSheet open={open} onClose={close} />
+    </>
   );
 }

@@ -3,13 +3,13 @@ import { BottomNav } from '../ui/BottomNav';
 
 const HIDE_NAV = new Set(['/', '/orient', '/consent', '/unlock', '/alert']);
 
-/** Shell with optional bottom navigation. */
+/** Shell with optional navigation (bottom bar on phones, side rail on laptops). */
 export function AppLayout() {
   const loc = useLocation();
   const showNav = !HIDE_NAV.has(loc.pathname);
 
   return (
-    <div className="neema-shell">
+    <div className={showNav ? 'neema-shell neema-shell--nav' : 'neema-shell'}>
       <Outlet />
       {showNav ? <BottomNav /> : null}
     </div>
