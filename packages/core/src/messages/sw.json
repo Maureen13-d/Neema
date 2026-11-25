@@ -1,0 +1,15 @@
+{
+  "green_calm": "Habari mama. Vipimo vyako vinaonekana vizuri sasa. Tutakagua tena baadaye.",
+  "yellow_recheck_bp": "Shinikizo lako la damu limeinuka kidogo. Pumzika, kaa wima, na tupime tena baadaye.",
+  "yellow_fever": "Joto lako limeinuka. Pima tena na uwasiliane na mhudumu wa afya leo.",
+  "yellow_pulse_baseline": "Mapigo ya moyo yako yako juu ya kawaida yako. Pumzika na tupime tena.",
+  "yellow_baby_movement": "Mwendo wa mtoto umepungua. Tafadhali nenda klinikini leo.",
+  "red_go_now": "Nenda kituo cha afya sasa. Usisubiri asubuhi. Tumetuma ujumbe kwa mhudumu wako.",
+  "red_bleeding": "Unaona damu nyingi. Nenda kituo cha afya sasa. Tumetuma ujumbe kwa mhudumu wako.",
+  "red_sos": "Ishara ya SOS imepokelewa. Tunatafuta msaada. Nenda kituo cha afya ikiwa unaweza.",
+  "unknown_check_band": "Angalia bendi yako. Hakuna data sahihi kwa sasa.",
+  "_meta": {
+    "status": "draft",
+    "needs": "Native Swahili speaker and CHP review before real use. TODO(clinician): first-aid wording."
+  }
+}
