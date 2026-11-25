@@ -38,15 +38,44 @@ export interface BaselineRow {
   ready: boolean;
 }
 
+/** Kept after minute rows expire (project doc retention). */
+export interface DailyVitalsSummary {
+  /** Start of UTC day. */
+  dayTsMs: number;
+  hrMean: number | null;
+  hrMin: number | null;
+  hrMax: number | null;
+  tempMeanC: number | null;
+  tempMinC: number | null;
+  tempMaxC: number | null;
+  alertCount: number;
+  minuteCount: number;
+}
+
+/** Antenatal / postnatal visit note supporting the official handbook. */
+export interface VisitRecord {
+  id: string;
+  tsMs: number;
+  type: 'antenatal' | 'postnatal' | 'other';
+  facilityName?: string;
+  clinicSystolic?: number;
+  clinicDiastolic?: number;
+  urineProtein?: string;
+  notes?: string;
+  nextAppointmentTsMs?: number;
+}
+
 export class NeemaDb extends Dexie {
   profile!: Table<ProfileRow, string>;
   vitalsMinutes!: Table<VitalsMinute, number>;
+  vitalsDaily!: Table<DailyVitalsSummary, number>;
   bp!: Table<BpReading, string>;
   symptoms!: Table<SymptomReport, string>;
   alerts!: Table<AlertRecord, string>;
   contacts!: Table<Contact, string>;
   consent!: Table<ConsentRow, string>;
   baseline!: Table<BaselineRow, string>;
+  visits!: Table<VisitRecord, string>;
 
   constructor() {
     super('neema-mama-passport');
@@ -60,6 +89,18 @@ export class NeemaDb extends Dexie {
       consent: 'id',
       baseline: 'id',
     });
+    this.version(2).stores({
+      profile: 'id',
+      vitalsMinutes: 'tsMs',
+      vitalsDaily: 'dayTsMs',
+      bp: 'id, tsMs',
+      symptoms: 'id, tsMs',
+      alerts: 'id, tsMs',
+      contacts: 'id, escalationOrder',
+      consent: 'id',
+      baseline: 'id',
+      visits: 'id, tsMs',
+    });
   }
 }
 
@@ -68,10 +109,53 @@ export const db = new NeemaDb();
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Deletes minute vitals older than 7 days.
+ * Downs samples expired minute rows into daily summaries, then deletes them.
  * Alerts / BP / symptoms are kept for the life of the profile unless deleted by the mother.
  */
 export async function enforceVitalsRetention(nowMs: number = Date.now()): Promise<number> {
   const cutoff = nowMs - SEVEN_DAYS_MS;
+  const expired = await db.vitalsMinutes.where('tsMs').below(cutoff).toArray();
+  if (expired.length === 0) return 0;
+
+  const byDay = new Map<number, VitalsMinute[]>();
+  for (const row of expired) {
+    const day = row.tsMs - (row.tsMs % 86_400_000);
+    const list = byDay.get(day) ?? [];
+    list.push(row);
+    byDay.set(day, list);
+  }
+
+  for (const [dayTsMs, minutes] of byDay) {
+    const hrs = minutes.map((m) => m.hrMean).filter((v): v is number => v !== null);
+    const temps = minutes.map((m) => m.tempMeanC).filter((v): v is number => v !== null);
+    const dayEnd = dayTsMs + 86_400_000;
+    const alertCount = await db.alerts.where('tsMs').between(dayTsMs, dayEnd, true, false).count();
+    const existing = await db.vitalsDaily.get(dayTsMs);
+    const summary: DailyVitalsSummary = {
+      dayTsMs,
+      hrMean: hrs.length ? avg(hrs) : existing?.hrMean ?? null,
+      hrMin: hrs.length ? Math.min(...hrs, existing?.hrMin ?? Infinity) : existing?.hrMin ?? null,
+      hrMax: hrs.length ? Math.max(...hrs, existing?.hrMax ?? -Infinity) : existing?.hrMax ?? null,
+      tempMeanC: temps.length ? avg(temps) : existing?.tempMeanC ?? null,
+      tempMinC: temps.length
+        ? Math.min(...temps, existing?.tempMinC ?? Infinity)
+        : existing?.tempMinC ?? null,
+      tempMaxC: temps.length
+        ? Math.max(...temps, existing?.tempMaxC ?? -Infinity)
+        : existing?.tempMaxC ?? null,
+      alertCount: (existing?.alertCount ?? 0) + alertCount,
+      minuteCount: (existing?.minuteCount ?? 0) + minutes.length,
+    };
+    if (summary.hrMin === Infinity) summary.hrMin = null;
+    if (summary.hrMax === -Infinity) summary.hrMax = null;
+    if (summary.tempMinC === Infinity) summary.tempMinC = null;
+    if (summary.tempMaxC === -Infinity) summary.tempMaxC = null;
+    await db.vitalsDaily.put(summary);
+  }
+
   return db.vitalsMinutes.where('tsMs').below(cutoff).delete();
+}
+
+function avg(nums: number[]): number {
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
