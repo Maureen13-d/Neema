@@ -27,6 +27,13 @@ export interface RecheckHandle {
   getState(): RecheckState;
   /** Schedule a recheck from a YELLOW result that includes recheckInMinutes. */
   scheduleFrom(result: TriageResult, initialBpId: string | null, nowMs?: number): void;
+  /** Schedule using an explicit delay (ms) — useful for demo-friendly timers. */
+  scheduleInMs(
+    result: TriageResult,
+    initialBpId: string | null,
+    delayMs: number,
+    nowMs?: number,
+  ): void;
   /** Returns true when now >= dueAtMs. */
   isDue(nowMs?: number): boolean;
   cancel(): void;
@@ -49,6 +56,21 @@ export function createRecheckLoop(): RecheckHandle {
     initialBpId: null,
   };
 
+  function scheduleInMs(
+    result: TriageResult,
+    initialBpId: string | null,
+    delayMs: number,
+    nowMs = Date.now(),
+  ): void {
+    if (result.level !== 'YELLOW') return;
+    state = {
+      status: 'scheduled',
+      dueAtMs: nowMs + Math.max(0, delayMs),
+      trigger: result,
+      initialBpId,
+    };
+  }
+
   return {
     getState() {
       return { ...state };
@@ -57,13 +79,9 @@ export function createRecheckLoop(): RecheckHandle {
       if (result.level !== 'YELLOW') return;
       const minutes =
         result.recheckInMinutes ?? getDefaultTriageConfig().yellowRecheckMinutes;
-      state = {
-        status: 'scheduled',
-        dueAtMs: nowMs + minutes * 60_000,
-        trigger: result,
-        initialBpId,
-      };
+      scheduleInMs(result, initialBpId, minutes * 60_000, nowMs);
     },
+    scheduleInMs,
     isDue(nowMs = Date.now()) {
       if (state.status !== 'scheduled' || state.dueAtMs === null) return false;
       if (nowMs >= state.dueAtMs) {
