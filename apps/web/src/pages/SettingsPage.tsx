@@ -37,11 +37,19 @@ export function SettingsPage() {
       </div>
 
       <div className="btn-row">
+        <Button variant="secondary" onClick={() => nav('/vitals')}>
+          Band / vitals
+        </Button>
         <Button variant="secondary" onClick={() => nav('/contacts')}>
           Contacts
         </Button>
+      </div>
+      <div className="btn-row" style={{ marginTop: '0.75rem' }}>
         <Button variant="secondary" onClick={() => nav('/summary')}>
           Nurse summary
+        </Button>
+        <Button variant="secondary" onClick={() => nav('/passport')}>
+          Passport
         </Button>
       </div>
       <div className="btn-row" style={{ marginTop: '0.75rem' }}>

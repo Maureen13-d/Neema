@@ -5,12 +5,13 @@ import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { LoadingScreen } from '../ui/LoadingScreen';
 
-/** Manual Omron cuff entry. */
+/** Manual Omron cuff entry — also used for YELLOW recheck. */
 export function BpPage() {
   const g = useGuardian();
   const nav = useNavigate();
   const [sys, setSys] = useState('120');
   const [dia, setDia] = useState('80');
+  const isRecheck = g.recheck.status === 'due' || g.recheck.status === 'scheduled';
 
   async function save() {
     const result = await g.saveBp(Number(sys), Number(dia));
@@ -24,9 +25,13 @@ export function BpPage() {
       {g.loading ? <LoadingScreen message="Saving blood pressure…" /> : null}
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        Blood pressure
+        {isRecheck ? 'Recheck blood pressure' : 'Blood pressure'}
       </h1>
-      <p className="screen-sub">Enter the reading from your upper-arm cuff. Sit, rest, then measure.</p>
+      <p className="screen-sub">
+        {isRecheck
+          ? 'Sit, rest a minute, then measure again. Neema will compare this reading.'
+          : 'Enter the reading from your upper-arm cuff. Sit, rest, then measure.'}
+      </p>
       <div className="panel">
         <div className="field">
           <label htmlFor="sys">Systolic</label>
@@ -42,7 +47,7 @@ export function BpPage() {
           Back
         </Button>
         <Button variant="primary" onClick={() => void save()}>
-          Save reading
+          {isRecheck ? 'Save recheck' : 'Save reading'}
         </Button>
       </div>
     </main>

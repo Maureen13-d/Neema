@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 
-/** Live band vitals — playful but clear. */
+/** Live band vitals — Bluetooth or simulator. */
 export function VitalsPage() {
   const g = useGuardian();
 
@@ -58,20 +58,38 @@ export function VitalsPage() {
           />
         </div>
         <p style={{ margin: '0.8rem 0 0', fontSize: '0.9rem', opacity: 0.75 }}>
-          {g.connected ? 'Watching… demo band connected' : 'Not connected yet'}
+          {g.connected
+            ? `Watching via ${g.bandMode === 'bluetooth' ? 'Bluetooth band' : 'simulator'}`
+            : 'Not connected yet'}
           {g.sample?.sos ? ' · SOS active' : ''}
         </p>
       </div>
 
-      <div className="btn-row" style={{ marginTop: '1rem' }}>
+      <div className="btn-row" style={{ marginTop: '1rem', flexWrap: 'wrap' }}>
         {!g.connected ? (
-          <Button variant="primary" onClick={() => void g.connectSimulator()}>
-            Connect simulator
-          </Button>
+          <>
+            <Button variant="primary" onClick={() => void g.connectSimulator()}>
+              Connect simulator
+            </Button>
+            <Button variant="secondary" onClick={() => void g.connectBluetooth()}>
+              Connect Bluetooth
+            </Button>
+          </>
         ) : (
-          <Button variant="secondary" onClick={() => void g.disconnect()}>
-            Disconnect
-          </Button>
+          <>
+            <Button variant="secondary" onClick={() => void g.disconnect()}>
+              Disconnect
+            </Button>
+            {g.bandMode === 'simulator' ? (
+              <Button variant="ghost" onClick={() => void g.connectBluetooth()}>
+                Switch to Bluetooth
+              </Button>
+            ) : (
+              <Button variant="ghost" onClick={() => void g.connectSimulator()}>
+                Switch to simulator
+              </Button>
+            )}
+          </>
         )}
       </div>
     </main>
