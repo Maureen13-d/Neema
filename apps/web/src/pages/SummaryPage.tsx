@@ -4,6 +4,7 @@ import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { SummaryQr } from '../ui/SummaryQr';
+import { levelLabel } from '../ui/levelLabel';
 import { buildSummaryForQr } from '../services/summaryQr';
 import { loadProfile } from '../services/passport';
 import { db } from '../storage/db';
@@ -65,7 +66,7 @@ export function SummaryPage() {
           <SummaryQr payload={payload} />
         </div>
         <p style={{ margin: 0 }}>
-          <strong>{preview.mother ?? name}</strong> · {preview.level ?? g.triage?.level ?? '—'}
+          <strong>{preview.mother ?? name}</strong> · {levelLabel(g.triage?.level ?? 'UNKNOWN', lang)}
         </p>
       </div>
       <Button

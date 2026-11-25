@@ -56,26 +56,11 @@ export function VitalsPage() {
           <span>{lang === 'sw' ? 'Ishara' : 'Signal'}</span>
           <strong>{q}%</strong>
         </div>
-        <div
-          style={{
-            marginTop: 8,
-            height: 10,
-            borderRadius: 99,
-            background: 'rgba(107, 83, 68, 0.12)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${q}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, var(--calm), var(--lamp))',
-              transition: 'width 300ms ease',
-            }}
-          />
+        <div className="meter" aria-hidden>
+          <span style={{ width: `${q}%` }} />
         </div>
         {g.sample?.sos ? (
-          <p style={{ margin: '0.8rem 0 0', color: 'var(--rose)', fontWeight: 700 }}>
+          <p style={{ margin: '0.8rem 0 0', color: 'var(--danger-deep)', fontWeight: 700 }}>
             {lang === 'sw' ? 'SOS imewashwa' : 'SOS is on'}
           </p>
         ) : null}

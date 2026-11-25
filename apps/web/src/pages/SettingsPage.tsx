@@ -21,10 +21,7 @@ export function SettingsPage() {
 
   return (
     <main className="screen">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <BrandMark />
-        <LangToggle />
-      </div>
+      <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
         {t('more')}
       </h1>

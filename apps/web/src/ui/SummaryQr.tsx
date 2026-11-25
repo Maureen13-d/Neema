@@ -15,7 +15,7 @@ export function SummaryQr({ payload }: { payload: string }) {
     void QRCode.toCanvas(canvasRef.current, payload, {
       width: 200,
       margin: 2,
-      color: { dark: '#062e2c', light: '#f7f3e8' },
+      color: { dark: '#1b1a33', light: '#ffffff' },
       errorCorrectionLevel: 'M',
     }).catch(() => setFailed(true));
   }, [payload]);

@@ -63,18 +63,9 @@ export function OrientationPage() {
         <p className="screen-sub" style={{ fontSize: '1.05rem' }}>
           {slide.body}
         </p>
-        <div style={{ display: 'flex', gap: 6, marginTop: '0.5rem' }}>
+        <div className="dots" aria-hidden>
           {slides.map((_, idx) => (
-            <span
-              key={idx}
-              style={{
-                width: idx === i ? 22 : 8,
-                height: 8,
-                borderRadius: 99,
-                background: idx === i ? 'var(--clay)' : 'rgba(107, 83, 68, 0.2)',
-                transition: 'width 200ms ease',
-              }}
-            />
+            <span key={idx} data-on={idx === i} />
           ))}
         </div>
       </div>

@@ -67,16 +67,7 @@ export function ConsentPage() {
       </p>
       <div className="panel">
         {rows.map((row) => (
-          <label
-            key={row.key}
-            style={{
-              display: 'flex',
-              gap: '0.75rem',
-              alignItems: 'center',
-              padding: '0.85rem 0',
-              borderBottom: '1px solid rgba(107, 83, 68, 0.1)',
-            }}
-          >
+          <label key={row.key} className="row-divided">
             <input type="checkbox" checked={row.value} onChange={(e) => row.set(e.target.checked)} />
             <span>{row.label}</span>
           </label>

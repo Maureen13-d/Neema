@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
+import { getMessageTextFor } from '../services/speech';
 
 /** Guided alert ritual — breathe → message → wait. */
 export function AlertPage() {
@@ -27,17 +28,33 @@ export function AlertPage() {
     );
   }
 
+  // Nothing is wrong: never show warning steps for a calm or unknown status.
+  if (!isRed && level !== 'YELLOW') {
+    return (
+      <main className="screen">
+        <BrandMark />
+        <StatusOrb level={level} />
+        <h1 className="screen-title" style={{ textAlign: 'center' }}>
+          {t('nothing_now')}
+        </h1>
+        <Button variant="primary" style={{ width: '100%', marginTop: '1rem' }} onClick={() => nav('/home')}>
+          {t('go_home')}
+        </Button>
+      </main>
+    );
+  }
+
   return (
     <main className="screen">
       {g.loading ? <LoadingScreen message={t('loading')} /> : null}
       <BrandMark />
-      <StatusOrb level={isRed || level === 'YELLOW' ? level : 'YELLOW'} />
+      <StatusOrb level={level} />
 
       <h1 className="screen-title" style={{ textAlign: 'center' }}>
         {isRed ? t('call_chp') : t('check_bp')}
       </h1>
-      <p className="screen-sub" style={{ textAlign: 'center' }}>
-        {g.message}
+      <p className="screen-sub" style={{ textAlign: 'center', marginInline: 'auto' }}>
+        {(g.triage ? getMessageTextFor(g.triage.messageKey, lang) : null) ?? g.message}
       </p>
 
       <ol className="ritual-steps">

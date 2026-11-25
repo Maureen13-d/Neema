@@ -46,24 +46,16 @@ export function ContactsPage() {
       </h1>
       <p className="screen-sub">Who Neema should reach when you need help.</p>
       <div className="panel" style={{ marginBottom: '1rem' }}>
-        {items.length === 0 ? <p style={{ margin: 0, opacity: 0.75 }}>No contacts yet.</p> : null}
+        {items.length === 0 ? <p className="soft-note">No contacts yet.</p> : null}
         {items.map((c) => (
-          <div
-            key={c.id}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              padding: '0.65rem 0',
-              borderBottom: '1px solid rgba(255,255,255,.08)',
-            }}
-          >
+          <div key={c.id} className="row-divided" style={{ justifyContent: 'space-between' }}>
             <div>
               <strong>{c.name}</strong>
-              <div style={{ opacity: 0.7, fontSize: '0.85rem' }}>
+              <div className="soft-note">
                 {c.role} · {c.phone}
               </div>
             </div>
-            <span style={{ opacity: 0.6 }}>#{c.escalationOrder}</span>
+            <span className="soft-note">#{c.escalationOrder}</span>
           </div>
         ))}
       </div>
