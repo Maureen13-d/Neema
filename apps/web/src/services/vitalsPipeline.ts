@@ -10,6 +10,14 @@ import {
   type VitalsSample,
 } from '@neema/core';
 import { db, enforceVitalsRetention } from '../storage/db';
+import { ingestMinuteIntoBaseline } from './baselineStore';
+
+export interface PipelineOptions {
+  /** When true (default), sealed minutes update the personal baseline. */
+  updateBaseline?: boolean;
+  /** Resting gate for baseline learning; default true until motion sensing exists. */
+  markedResting?: boolean;
+}
 
 export interface PipelineState {
   currentMinute: VitalsMinute | null;
@@ -20,12 +28,13 @@ export interface PipelineState {
 /**
  * Creates an in-memory vitals pipeline that writes one minute row per wall clock minute.
  */
-export function createVitalsPipeline() {
+export function createVitalsPipeline(options: PipelineOptions = {}) {
   let currentKey = -1;
   let bucket: VitalsSample[] = [];
   let lastSample: VitalsSample | null = null;
   const recentSamples: VitalsSample[] = [];
   const config = getDefaultTriageConfig();
+  const shouldUpdateBaseline = options.updateBaseline !== false;
 
   async function flush(minuteStart: number, samples: VitalsSample[]) {
     if (samples.length === 0) return;
@@ -44,6 +53,9 @@ export function createVitalsPipeline() {
     };
     await db.vitalsMinutes.put(row);
     await enforceVitalsRetention();
+    if (shouldUpdateBaseline) {
+      await ingestMinuteIntoBaseline(row, { resting: options.markedResting !== false });
+    }
   }
 
   return {
