@@ -1,0 +1,14 @@
+﻿{
+  "name": "neema",
+  "private": true,
+  "scripts": {
+    "test": "pnpm --filter @neema/core test",
+    "dev": "pnpm --filter @neema/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.18.0"
+}
