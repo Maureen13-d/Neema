@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { GuardianProvider } from '../hooks/useGuardian';
 import { AppLayout } from './AppLayout';
 import { RequireAuth } from './RequireAuth';
-import { SplashPage } from '../pages/SplashPage';
+import { EntryPage } from '../pages/EntryPage';
 import { OrientationPage } from '../pages/OrientationPage';
 import { ConsentPage } from '../pages/ConsentPage';
 import { UnlockPage } from '../pages/UnlockPage';
@@ -15,15 +15,17 @@ import { PassportPage } from '../pages/PassportPage';
 import { SummaryPage } from '../pages/SummaryPage';
 import { ContactsPage } from '../pages/ContactsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { LocaleProvider } from '../hooks/useLocale';
 
-/** Mother-facing routes. Harness remains at /dev/harness. */
+/** Mother-facing routes. No marketing landing — entry routes into care. */
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <LocaleProvider>
       <GuardianProvider>
         <Routes>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<SplashPage />} />
+            <Route path="/" element={<EntryPage />} />
             <Route path="/orient" element={<OrientationPage />} />
             <Route path="/consent" element={<ConsentPage />} />
             <Route path="/unlock" element={<UnlockPage />} />
@@ -103,6 +105,7 @@ export function AppRouter() {
           </Route>
         </Routes>
       </GuardianProvider>
+      </LocaleProvider>
     </BrowserRouter>
   );
 }

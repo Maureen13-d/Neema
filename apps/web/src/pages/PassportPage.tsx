@@ -52,9 +52,10 @@ export function PassportPage() {
       {busy ? <LoadingScreen message="Opening Mama Passport…" /> : null}
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        Mama Passport
+        Your passport
       </h1>
-      <p className="screen-sub">Your private record on this phone. Supports the handbook — never replaces it.</p>
+      <p className="screen-sub">Private on this phone. Helps the clinic handbook — never replaces it.</p>
+      <p className="trust-line">Saved on this phone — works offline</p>
       <div className="panel">
         <div className="field">
           <label htmlFor="name">Name / nickname</label>

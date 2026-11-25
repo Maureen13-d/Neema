@@ -17,4 +17,4 @@ Between clinic visits, notice danger early → decide → reach CHP/facility wit
 
 ## Mode
 
-Operate (guardian app) with a Persuade splash/orientation. First viewport of splash is brand-led.
+Operate (guardian app). No marketing landing — entry routes into orientation / consent / home. Orientation is a short trust story.

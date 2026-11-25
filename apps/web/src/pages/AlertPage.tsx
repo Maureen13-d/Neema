@@ -1,24 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { useGuardian } from '../hooks/useGuardian';
+import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 
-/** Action screen — alert chain already prepared by guardian on YELLOW/RED. */
+/** Guided alert ritual — breathe → message → wait. */
 export function AlertPage() {
   const g = useGuardian();
   const nav = useNavigate();
+  const { t, lang } = useLocale();
   const level = g.triage?.level ?? 'UNKNOWN';
   const smsHref = g.pendingSmsHref;
-  const recheckDue = g.recheck.status === 'due';
-  const recheckScheduled = g.recheck.status === 'scheduled';
+  const isRed = level === 'RED';
 
   if (g.error) {
     return (
       <ErrorScreen
-        title="Alert could not prepare"
+        title={lang === 'sw' ? 'Haikuweza kuandaa ujumbe' : 'Could not prepare the message'}
         detail={g.error}
         onRetry={() => g.clearError()}
         onHome={() => nav('/home')}
@@ -28,59 +29,76 @@ export function AlertPage() {
 
   return (
     <main className="screen">
-      {g.loading ? <LoadingScreen message="Preparing your action…" /> : null}
+      {g.loading ? <LoadingScreen message={t('loading')} /> : null}
       <BrandMark />
-      <StatusOrb level={level === 'GREEN' || level === 'UNKNOWN' ? 'YELLOW' : level} />
-      <div className="panel" style={{ textAlign: 'center' }}>
-        <p style={{ margin: 0, fontSize: '1.15rem', lineHeight: 1.45 }}>{g.message}</p>
-        <p style={{ margin: '0.75rem 0 0', opacity: 0.7, fontSize: '0.85rem' }}>
-          {g.triage?.firedRules.join(' · ') ?? '—'}
-        </p>
-        {g.lastChainNote ? (
-          <p style={{ margin: '0.6rem 0 0', opacity: 0.8, fontSize: '0.85rem' }}>{g.lastChainNote}</p>
-        ) : null}
-        {recheckScheduled && g.recheckDueInSec !== null ? (
-          <p style={{ margin: '0.6rem 0 0', opacity: 0.75, fontSize: '0.9rem' }}>
-            Recheck due in {g.recheckDueInSec}s
-          </p>
-        ) : null}
-      </div>
+      <StatusOrb level={isRed || level === 'YELLOW' ? level : 'YELLOW'} />
+
+      <h1 className="screen-title" style={{ textAlign: 'center' }}>
+        {isRed ? t('call_chp') : t('check_bp')}
+      </h1>
+      <p className="screen-sub" style={{ textAlign: 'center' }}>
+        {g.message}
+      </p>
+
+      <ol className="ritual-steps">
+        <li>
+          <span className="step-n">1</span>
+          <div>
+            <strong>{lang === 'sw' ? 'Pumua' : 'Breathe'}</strong>
+            <p className="soft-note">{t('breathe')}</p>
+          </div>
+        </li>
+        <li>
+          <span className="step-n">2</span>
+          <div>
+            <strong>{lang === 'sw' ? 'Tuma ujumbe' : 'Send a message'}</strong>
+            <p className="soft-note">
+              {lang === 'sw'
+                ? 'Neema imeandaa SMS fupi kwa CHP yako.'
+                : 'Neema prepared a short SMS for your CHP.'}
+            </p>
+          </div>
+        </li>
+        <li>
+          <span className="step-n">3</span>
+          <div>
+            <strong>{lang === 'sw' ? 'Subiri jibu' : 'Wait for a reply'}</strong>
+            <p className="soft-note">{t('wait_reply')}</p>
+          </div>
+        </li>
+      </ol>
 
       {smsHref ? (
-        <a className="btn btn-danger" href={smsHref} style={{ marginTop: '1rem', width: '100%' }}>
-          Open SMS to CHP
+        <a className={`btn ${isRed ? 'btn-danger' : 'btn-primary'}`} href={smsHref} style={{ width: '100%' }}>
+          {t('open_sms')}
         </a>
       ) : (
         <Button
-          variant="danger"
-          style={{ width: '100%', marginTop: '1rem' }}
-          onClick={() => void g.refreshTriage(level === 'RED')}
+          variant={isRed ? 'danger' : 'primary'}
+          style={{ width: '100%' }}
+          onClick={() => void g.refreshTriage(isRed)}
         >
-          Prepare SMS again
+          {lang === 'sw' ? 'Andaa SMS tena' : 'Prepare SMS again'}
         </Button>
       )}
 
-      {recheckDue || recheckScheduled ? (
-        <Button
-          variant="primary"
-          style={{ width: '100%', marginTop: '0.75rem' }}
-          onClick={() => nav('/bp')}
-        >
-          {recheckDue ? 'Recheck BP now' : 'Enter recheck BP'}
+      {(g.recheck.status === 'due' || g.recheck.status === 'scheduled') && !isRed ? (
+        <Button variant="secondary" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/bp')}>
+          {t('recheck_now')}
         </Button>
       ) : null}
 
-      {level === 'RED' ? (
+      {isRed ? (
         <Button
-          variant="secondary"
+          variant="ghost"
           style={{ width: '100%', marginTop: '0.75rem' }}
           onClick={() => void g.acknowledgeActiveRed().then(() => nav('/home'))}
         >
-          Acknowledge RED
+          {lang === 'sw' ? 'Nimesaidika · Rudi' : 'I’m okay now · Back'}
         </Button>
       ) : (
         <Button variant="ghost" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/home')}>
-          Back home
+          {t('go_home')}
         </Button>
       )}
     </main>

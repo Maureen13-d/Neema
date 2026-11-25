@@ -2,34 +2,40 @@
 
 ## World
 
-**Coastal night watch** — Lamu lagoon teal, lantern gold, soft moonlight. Protective and alive at 2am. Not clinical white, not purple AI, not cream/terracotta cliché.
+**Warm lamp + linen** — soft cream linen surfaces, clay earth accents, muted rose for danger. Feels like a quiet room with a lamp on at 2am, not a clinic dashboard or a teal tech brand.
 
 ## Brand signal
 
-Wordmark **Neema** is the hero on splash. Status colour is the second signal. Never bury the brand under a generic headline.
+Wordmark **Neema** stays visible on every mother screen. Status colour is the second signal. No marketing landing page — open into care.
 
 ## Colour
 
 | Token | Value | Use |
 |---|---|---|
-| `--lagoon` | `#0A4F4A` | Brand, primary actions |
-| `--lagoon-deep` | `#062E2C` | Night backgrounds |
-| `--moon` | `#D7F0EA` | Soft surfaces |
-| `--lantern` | `#E8A54B` | Attention, YELLOW |
-| `--pulse` | `#E24A4A` | RED danger |
-| `--calm` | `#2F9E6B` | GREEN |
-| `--ink` | `#102 intermediate` | Body text on light |
-| `--foam` | `#F3FBFT` | Light panels |
+| `--linen` | `#FAF6F0` | App background |
+| `--linen-deep` | `#EFE6DA` | Soft panels |
+| `--clay` | `#6B5344` | Primary actions, brand ink-warm |
+| `--clay-soft` | `#8B735F` | Secondary text, borders |
+| `--lamp` | `#C4A574` | Attention, YELLOW, warm accent |
+| `--lamp-glow` | `#E8D4B0` | Soft highlights |
+| `--rose` | `#B76E79` | RED alerts |
+| `--calm` | `#5A7A62` | GREEN / all quiet |
+| `--ink` | `#2C241C` | Body text |
+| `--mist` | `#F3EDE4` | Nested surfaces |
 
 ## Type
 
-- Display: **Fraunces** (soft serif, warm)
-- UI: **Manrope** (geometric, readable)
+- Display: **Fraunces** (warm soft serif)
+- UI: **Manrope** (clear, large tap targets)
 
 ## Motion
 
-2–3 intentional motions: status orb breathe, screen enter, RED pulse. Honour `prefers-reduced-motion`.
+Status orb breathe, screen enter, soft RED pulse. Honour `prefers-reduced-motion`.
+
+## Layout
+
+Phone-first column. Tablet ≥768px: wider stage. Laptop ≥1100px: home can split status + next step. No landing page.
 
 ## Components
 
-Large tap targets (≥48px). One primary CTA per screen. Cards only for interactive containers.
+Large tap targets (≥48px). One primary CTA per screen. Secondary destinations live in nav/More — not piled on home.

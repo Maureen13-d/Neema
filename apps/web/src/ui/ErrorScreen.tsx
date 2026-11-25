@@ -1,8 +1,9 @@
 import { Button } from './Button';
+import { useLocale } from '../hooks/useLocale';
 
-/** Recoverable error surface. */
+/** Recoverable error — human words, clear recovery. */
 export function ErrorScreen({
-  title = 'Something went wrong',
+  title,
   detail,
   onRetry,
   onHome,
@@ -12,25 +13,26 @@ export function ErrorScreen({
   onRetry?: () => void;
   onHome?: () => void;
 }) {
+  const { t } = useLocale();
   return (
     <div className="overlay" role="alert">
       <div className="overlay-card">
-        <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }} aria-hidden>
-          ⚠️
+        <div className="error-mark" aria-hidden>
+          !
         </div>
-        <h2 className="screen-title" style={{ fontSize: '1.6rem' }}>
-          {title}
+        <h2 className="screen-title" style={{ fontSize: '1.5rem' }}>
+          {title ?? t('something_wrong')}
         </h2>
         {detail ? <p className="screen-sub">{detail}</p> : null}
         <div className="btn-row" style={{ marginTop: '1rem' }}>
           {onRetry ? (
             <Button variant="primary" onClick={onRetry}>
-              Try again
+              {t('try_again')}
             </Button>
           ) : null}
           {onHome ? (
             <Button variant="secondary" onClick={onHome}>
-              Go home
+              {t('go_home')}
             </Button>
           ) : null}
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useGuardian } from '../hooks/useGuardian';
+import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { SummaryQr } from '../ui/SummaryQr';
@@ -7,9 +8,10 @@ import { buildSummaryForQr } from '../services/summaryQr';
 import { loadProfile } from '../services/passport';
 import { db } from '../storage/db';
 
-/** Nurse one-page handoff with real QR payload. */
+/** Nurse handoff — explain why mom would show this. */
 export function SummaryPage() {
   const g = useGuardian();
+  const { t, lang } = useLocale();
   const [name, setName] = useState('Mama');
   const [payload, setPayload] = useState('');
   const [copied, setCopied] = useState(false);
@@ -55,9 +57,9 @@ export function SummaryPage() {
     <main className="screen">
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        Nurse summary
+        {lang === 'sw' ? 'Kwa muuguzi' : 'For the nurse'}
       </h1>
-      <p className="screen-sub">One page. About 30 seconds. You choose what is shared.</p>
+      <p className="screen-sub">{t('nurse_why')}</p>
       <div className="panel" style={{ textAlign: 'center' }}>
         <div style={{ display: 'grid', placeItems: 'center', marginBottom: '1rem' }}>
           <SummaryQr payload={payload} />
@@ -74,8 +76,15 @@ export function SummaryPage() {
           setCopied(true);
         }}
       >
-        {copied ? 'Payload copied' : 'Copy QR payload'}
+        {copied
+          ? lang === 'sw'
+            ? 'Imenakiliwa'
+            : 'Copied'
+          : lang === 'sw'
+            ? 'Nakili taarifa'
+            : 'Copy summary'}
       </Button>
+      <p className="trust-line">{t('saved_here')}</p>
     </main>
   );
 }

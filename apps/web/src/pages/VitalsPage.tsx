@@ -1,34 +1,51 @@
+import { useNavigate } from 'react-router-dom';
 import { useGuardian } from '../hooks/useGuardian';
+import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 
-/** Live band vitals — Bluetooth or simulator. */
+/** Live band presence — human states, not BLE jargon. */
 export function VitalsPage() {
   const g = useGuardian();
+  const nav = useNavigate();
+  const { t, lang } = useLocale();
 
   if (g.error) {
-    return <ErrorScreen title="Band link issue" detail={g.error} onRetry={() => g.clearError()} />;
+    return (
+      <ErrorScreen
+        title={lang === 'sw' ? 'Bendi haitaji' : 'Band needs attention'}
+        detail={g.error}
+        onRetry={() => g.clearError()}
+        onHome={() => nav('/home')}
+      />
+    );
   }
+
+  const q = g.sample?.signalQuality ?? 0;
+  let presence = t('band_away');
+  if (g.connected && q >= 50) presence = t('band_watching');
+  else if (g.connected && q > 0) presence = t('band_weak');
+  else if (g.connected) presence = t('waiting_signal');
 
   return (
     <main className="screen">
-      {g.loading ? <LoadingScreen message="Listening to your band…" /> : null}
+      {g.loading ? <LoadingScreen message={t('waiting_signal')} /> : null}
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        Live vitals
+        {lang === 'sw' ? 'Bendi yako' : 'Your band'}
       </h1>
-      <p className="screen-sub">Per-second readings stay in memory. Only minute summaries are saved.</p>
+      <p className="screen-sub">{presence}</p>
 
       <div className="metric-row">
         <div className="panel metric">
-          <span style={{ opacity: 0.7 }}>Heart rate</span>
+          <span style={{ color: 'var(--ink-muted)' }}>{lang === 'sw' ? 'Mapigo' : 'Heart rate'}</span>
           <b>{g.sample?.heartRate ?? '—'}</b>
           <span>bpm</span>
         </div>
         <div className="panel metric">
-          <span style={{ opacity: 0.7 }}>Skin temp</span>
+          <span style={{ color: 'var(--ink-muted)' }}>{lang === 'sw' ? 'Joto' : 'Skin temp'}</span>
           <b>{g.sample?.skinTempC?.toFixed(1) ?? '—'}</b>
           <span>°C</span>
         </div>
@@ -36,62 +53,51 @@ export function VitalsPage() {
 
       <div className="panel" style={{ marginTop: '0.9rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <span>Signal</span>
-          <strong>{g.sample?.signalQuality ?? 0}%</strong>
+          <span>{lang === 'sw' ? 'Ishara' : 'Signal'}</span>
+          <strong>{q}%</strong>
         </div>
         <div
           style={{
             marginTop: 8,
             height: 10,
             borderRadius: 99,
-            background: 'rgba(255,255,255,.12)',
+            background: 'rgba(107, 83, 68, 0.12)',
             overflow: 'hidden',
           }}
         >
           <div
             style={{
-              width: `${g.sample?.signalQuality ?? 0}%`,
+              width: `${q}%`,
               height: '100%',
-              background: 'linear-gradient(90deg, var(--lagoon-mid), var(--lantern))',
+              background: 'linear-gradient(90deg, var(--calm), var(--lamp))',
               transition: 'width 300ms ease',
             }}
           />
         </div>
-        <p style={{ margin: '0.8rem 0 0', fontSize: '0.9rem', opacity: 0.75 }}>
-          {g.connected
-            ? `Watching via ${g.bandMode === 'bluetooth' ? 'Bluetooth band' : 'simulator'}`
-            : 'Not connected yet'}
-          {g.sample?.sos ? ' · SOS active' : ''}
-        </p>
+        {g.sample?.sos ? (
+          <p style={{ margin: '0.8rem 0 0', color: 'var(--rose)', fontWeight: 700 }}>
+            {lang === 'sw' ? 'SOS imewashwa' : 'SOS is on'}
+          </p>
+        ) : null}
       </div>
 
-      <div className="btn-row" style={{ marginTop: '1rem', flexWrap: 'wrap' }}>
+      <div className="btn-row" style={{ marginTop: '1rem' }}>
         {!g.connected ? (
           <>
             <Button variant="primary" onClick={() => void g.connectSimulator()}>
-              Connect simulator
+              {t('start_watch')}
             </Button>
             <Button variant="secondary" onClick={() => void g.connectBluetooth()}>
-              Connect Bluetooth
+              {t('connect_band')}
             </Button>
           </>
         ) : (
-          <>
-            <Button variant="secondary" onClick={() => void g.disconnect()}>
-              Disconnect
-            </Button>
-            {g.bandMode === 'simulator' ? (
-              <Button variant="ghost" onClick={() => void g.connectBluetooth()}>
-                Switch to Bluetooth
-              </Button>
-            ) : (
-              <Button variant="ghost" onClick={() => void g.connectSimulator()}>
-                Switch to simulator
-              </Button>
-            )}
-          </>
+          <Button variant="secondary" onClick={() => void g.disconnect()}>
+            {lang === 'sw' ? 'Achana na bendi' : 'Disconnect band'}
+          </Button>
         )}
       </div>
+      <p className="trust-line">{t('saved_here')}</p>
     </main>
   );
 }

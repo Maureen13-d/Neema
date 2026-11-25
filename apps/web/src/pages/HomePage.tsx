@@ -1,117 +1,152 @@
 import { useNavigate } from 'react-router-dom';
 import { useGuardian } from '../hooks/useGuardian';
+import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { LangToggle } from '../ui/LangToggle';
 
-function formatRecheckCountdown(sec: number | null): string {
-  if (sec === null) return '';
-  if (sec <= 0) return 'now';
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  if (m <= 0) return `${s}s`;
-  return `${m}:${String(s).padStart(2, '0')}`;
+function bandState(g: ReturnType<typeof useGuardian>): {
+  labelKey: 'band_watching' | 'band_away' | 'band_weak' | 'waiting_signal';
+  state: 'ok' | 'warn' | 'off';
+} {
+  if (!g.connected) return { labelKey: 'band_away', state: 'off' };
+  const q = g.sample?.signalQuality ?? 0;
+  if (q > 0 && q < 50) return { labelKey: 'band_weak', state: 'warn' };
+  if (!g.sample) return { labelKey: 'waiting_signal', state: 'warn' };
+  return { labelKey: 'band_watching', state: 'ok' };
 }
 
-/** Guardian home — one status, one action story. */
+/** Guardian home — one status, one next step. */
 export function HomePage() {
   const nav = useNavigate();
   const g = useGuardian();
+  const { t, lang } = useLocale();
   const level = g.triage?.level ?? 'UNKNOWN';
+  const band = bandState(g);
   const recheckDue = g.recheck.status === 'due';
   const recheckScheduled = g.recheck.status === 'scheduled';
+
+  const headline =
+    level === 'GREEN'
+      ? t('youre_okay')
+      : level === 'YELLOW'
+        ? t('check_bp')
+        : level === 'RED'
+          ? t('call_chp')
+          : t('waiting_signal');
+
+  const body =
+    g.message ||
+    (level === 'GREEN'
+      ? t('all_quiet')
+      : level === 'UNKNOWN'
+        ? lang === 'sw'
+          ? 'Unganisha bendi au ongeza shinikizo ili Neema ianze.'
+          : 'Connect your band or add a blood pressure so Neema can begin.'
+        : '');
+
+  let primary: { label: string; onClick: () => void; danger?: boolean; href?: string } | null = null;
+
+  if (g.pendingSmsHref && (level === 'RED' || level === 'YELLOW')) {
+    primary = { label: t('open_sms'), onClick: () => undefined, href: g.pendingSmsHref, danger: level === 'RED' };
+  } else if (level === 'RED') {
+    primary = { label: t('call_chp'), onClick: () => nav('/alert'), danger: true };
+  } else if (recheckDue || level === 'YELLOW') {
+    primary = { label: t('recheck_now'), onClick: () => nav('/bp') };
+  } else if (!g.connected) {
+    primary = {
+      label: t('start_watch'),
+      onClick: () => void g.connectSimulator(),
+    };
+  } else if (level === 'UNKNOWN') {
+    primary = { label: t('add_bp'), onClick: () => nav('/bp') };
+  }
 
   return (
     <main className="screen">
       {g.loading ? <LoadingScreen /> : null}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <BrandMark />
-        <button className="btn btn-ghost" type="button" onClick={() => nav('/settings')} style={{ paddingInline: 10 }}>
-          More
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <BrandMark showSub />
+        <LangToggle />
       </div>
 
-      <StatusOrb level={level} />
-
-      <div className="panel" style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <p style={{ margin: 0, fontSize: '1.05rem', lineHeight: 1.45 }}>{g.message}</p>
-        {g.lastChainNote ? (
-          <p style={{ margin: '0.6rem 0 0', opacity: 0.8, fontSize: '0.85rem' }}>{g.lastChainNote}</p>
-        ) : null}
-        {recheckScheduled && g.recheckDueInSec !== null ? (
-          <p style={{ margin: '0.6rem 0 0', opacity: 0.75, fontSize: '0.9rem' }}>
-            Recheck BP in {formatRecheckCountdown(g.recheckDueInSec)}
-          </p>
-        ) : null}
-      </div>
-
-      {g.pendingSmsHref ? (
-        <div className="panel action-banner" style={{ marginBottom: '0.75rem' }}>
-          <p style={{ margin: '0 0 0.65rem', fontSize: '0.95rem' }}>
-            {level === 'RED' ? 'SMS ready for your CHP — open it now.' : 'Quiet CHP heads-up is ready.'}
-          </p>
-          <div className="btn-row">
-            <a className="btn btn-primary" href={g.pendingSmsHref} style={{ flex: 1 }}>
-              Open SMS
-            </a>
-            <Button variant="ghost" onClick={() => g.clearPendingSms()}>
-              Dismiss
-            </Button>
+      <div className="home-stage">
+        <div>
+          <StatusOrb level={level} />
+          <div style={{ textAlign: 'center' }}>
+            <span className="band-pill" data-state={band.state}>
+              {t(band.labelKey)}
+            </span>
           </div>
         </div>
-      ) : null}
 
-      {recheckDue ? (
-        <Button variant="primary" onClick={() => nav('/bp')} style={{ width: '100%', marginBottom: '0.75rem' }}>
-          Recheck BP now
-        </Button>
-      ) : null}
+        <div className="home-primary">
+          <h1 className="screen-title">{headline}</h1>
+          <p className="screen-sub" style={{ marginBottom: '0.75rem' }}>
+            {body}
+          </p>
 
-      {!g.connected ? (
-        <div style={{ marginBottom: '0.75rem' }}>
-          <Button
-            variant="primary"
-            onClick={() => void g.connectSimulator()}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
-          >
-            Start night watch
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => void g.connectBluetooth()}
-            style={{ width: '100%' }}
-          >
-            Connect band (Bluetooth)
-          </Button>
+          {recheckScheduled && g.recheckDueInSec !== null && !recheckDue ? (
+            <p className="soft-note" style={{ marginBottom: '0.85rem' }}>
+              {lang === 'sw'
+                ? `Pima tena baada ya ${g.recheckDueInSec}s`
+                : `Recheck in ${g.recheckDueInSec}s`}
+            </p>
+          ) : null}
+
+          {primary ? (
+            primary.href ? (
+              <a
+                className={`btn ${primary.danger ? 'btn-danger' : 'btn-primary'}`}
+                href={primary.href}
+                style={{ width: '100%', marginBottom: '0.65rem' }}
+              >
+                {primary.label}
+              </a>
+            ) : (
+              <Button
+                variant={primary.danger ? 'danger' : 'primary'}
+                onClick={primary.onClick}
+                style={{ width: '100%', marginBottom: '0.65rem' }}
+              >
+                {primary.label}
+              </Button>
+            )
+          ) : (
+            <p className="soft-note" style={{ marginBottom: '0.85rem' }}>
+              {t('all_quiet')}
+            </p>
+          )}
+
+          {!g.connected ? (
+            <Button
+              variant="secondary"
+              onClick={() => void g.connectBluetooth()}
+              style={{ width: '100%', marginBottom: '0.65rem' }}
+            >
+              {t('connect_band')}
+            </Button>
+          ) : null}
+
+          {level === 'GREEN' || level === 'UNKNOWN' ? (
+            <div className="btn-row">
+              <Button variant="secondary" onClick={() => nav('/bp')}>
+                {t('add_bp')}
+              </Button>
+              <Button variant="secondary" onClick={() => nav('/symptoms')}>
+                {t('how_feel')}
+              </Button>
+            </div>
+          ) : level === 'YELLOW' || level === 'RED' ? (
+            <Button variant="ghost" onClick={() => nav('/alert')} style={{ width: '100%' }}>
+              {lang === 'sw' ? 'Fungua hatua zote' : 'See all steps'}
+            </Button>
+          ) : null}
+
+          <p className="trust-line">{t('saved_here')}</p>
         </div>
-      ) : (
-        <p style={{ textAlign: 'center', opacity: 0.65, fontSize: '0.8rem', margin: '0 0 0.75rem' }}>
-          Watching via {g.bandMode === 'bluetooth' ? 'Bluetooth band' : 'simulator'}
-        </p>
-      )}
-
-      {level === 'RED' || level === 'YELLOW' ? (
-        <Button variant="danger" onClick={() => nav('/alert')} style={{ width: '100%', marginBottom: '0.75rem' }}>
-          {level === 'RED' ? 'Act now · Open alert' : 'Review warning'}
-        </Button>
-      ) : null}
-
-      <div className="btn-row">
-        <Button variant="secondary" onClick={() => nav('/bp')}>
-          Add BP
-        </Button>
-        <Button variant="secondary" onClick={() => nav('/symptoms')}>
-          Symptoms
-        </Button>
-      </div>
-      <div className="btn-row" style={{ marginTop: '0.75rem' }}>
-        <Button variant="ghost" onClick={() => nav('/vitals')}>
-          Live vitals
-        </Button>
-        <Button variant="ghost" onClick={() => nav('/summary')}>
-          Nurse summary
-        </Button>
       </div>
     </main>
   );

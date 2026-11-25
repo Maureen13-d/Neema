@@ -1,18 +1,20 @@
 import type { TriageLevel } from '@neema/core';
+import { useLocale } from '../hooks/useLocale';
 
-const LABELS: Record<TriageLevel, string> = {
-  GREEN: 'Safi',
-  YELLOW: 'Angalia',
-  RED: 'Hatari',
-  UNKNOWN: 'Band?',
-};
-
-/** Living status orb — the product's emotional centre. */
+/** Living status orb — emotional centre of the guardian. */
 export function StatusOrb({ level }: { level: TriageLevel }) {
+  const { lang } = useLocale();
+  const labels: Record<TriageLevel, string> = {
+    GREEN: lang === 'sw' ? 'Safi' : 'Okay',
+    YELLOW: lang === 'sw' ? 'Angalia' : 'Check',
+    RED: lang === 'sw' ? 'Hatari' : 'Go now',
+    UNKNOWN: lang === 'sw' ? 'Subiri' : 'Waiting',
+  };
+
   return (
     <div className="status-orb" data-level={level} aria-live="polite" aria-label={`Status ${level}`}>
       <div className="status-orb__core">
-        <span>{LABELS[level]}</span>
+        <span>{labels[level]}</span>
       </div>
     </div>
   );

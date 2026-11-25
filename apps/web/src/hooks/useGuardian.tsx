@@ -110,8 +110,8 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       setRecheck(recheckRef.current.getState());
       setLastChainNote(
         import.meta.env.DEV
-          ? 'YELLOW: quiet CHP heads-up prepared. Recheck BP in ~60s (demo timer).'
-          : `YELLOW: quiet CHP heads-up prepared. Recheck BP in ${result.recheckInMinutes ?? 45} min.`,
+          ? 'A quiet heads-up for your CHP is ready. Recheck blood pressure soon.'
+          : `A quiet heads-up for your CHP is ready. Recheck blood pressure in about ${result.recheckInMinutes ?? 45} minutes.`,
       );
     } else if (result.level === 'GREEN' || result.level === 'UNKNOWN') {
       recheckRef.current.cancel();
@@ -133,8 +133,8 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
           escalationRef.current = chain.escalation;
           setLastChainNote(
             result.level === 'RED'
-              ? 'RED: spoken action ready. Open SMS to reach your CHP now.'
-              : 'YELLOW: spoken guidance + quiet CHP SMS ready.',
+              ? 'Open the message to reach your CHP now.'
+              : 'Guidance is ready, and a quiet SMS for your CHP is prepared.',
           );
         }
       } catch (err) {

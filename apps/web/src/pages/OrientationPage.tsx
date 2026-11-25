@@ -2,32 +2,48 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { BrandMark } from '../ui/BrandMark';
+import { LangToggle } from '../ui/LangToggle';
+import { useLocale } from '../hooks/useLocale';
 import { loadOnboarding, saveOnboarding } from '../hooks/useOnboarding';
 
-const SLIDES = [
-  {
-    title: 'Watches with you',
-    body: 'Heart rate and temperature through the night — plus the BP and symptoms you share.',
-  },
-  {
-    title: 'One clear action',
-    body: 'GREEN means rest easy. YELLOW means recheck. RED means go now — spoken in Swahili.',
-  },
-  {
-    title: 'Your people know',
-    body: 'On danger, Neema prepares an SMS for your CHP and family with where you are.',
-  },
-  {
-    title: 'Data stays here',
-    body: 'Raw readings stay on this phone. Only the alert leaves. You choose what to share.',
-  },
-] as const;
-
-/** First-run orientation carousel. */
+/** Short trust story — not a product briefing. */
 export function OrientationPage() {
   const nav = useNavigate();
+  const { lang, t } = useLocale();
   const [i, setI] = useState(0);
-  const slide = SLIDES[i]!;
+
+  const slides =
+    lang === 'sw'
+      ? [
+          {
+            title: 'Neema anakulinda usiku',
+            body: 'Anasikiliza bendi yako, na mambo unayoandika — shinikizo na jinsi unavyojisikia.',
+          },
+          {
+            title: 'Hatua moja wazi',
+            body: 'Safi = pumzika. Angalia = pima tena. Hatari = wasiliana na CHP sasa.',
+          },
+          {
+            title: 'Data inabaki hapa',
+            body: 'Vipimo viko kwenye simu hii. Unachagua nani apokee tahadhari.',
+          },
+        ]
+      : [
+          {
+            title: 'Neema watches with you',
+            body: 'She listens to your band, and what you share — blood pressure and how you feel.',
+          },
+          {
+            title: 'One clear next step',
+            body: 'Okay = rest. Check = measure again. Go now = reach your CHP.',
+          },
+          {
+            title: 'Your data stays here',
+            body: 'Readings live on this phone. You choose who gets an alert.',
+          },
+        ];
+
+  const slide = slides[i]!;
 
   function finish() {
     const flags = loadOnboarding();
@@ -37,42 +53,47 @@ export function OrientationPage() {
 
   return (
     <main className="screen">
-      <BrandMark />
-      <div className="panel" style={{ marginTop: '1.5rem', minHeight: 260 }}>
-        <p style={{ opacity: 0.7, margin: '0 0 0.5rem', fontWeight: 700 }}>
-          {i + 1} / {SLIDES.length}
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <BrandMark showSub />
+        <LangToggle />
+      </div>
+
+      <div style={{ marginTop: '2rem' }}>
         <h1 className="screen-title">{slide.title}</h1>
-        <p className="screen-sub">{slide.body}</p>
-        <div style={{ display: 'flex', gap: 6, marginTop: '1rem' }}>
-          {SLIDES.map((_, idx) => (
+        <p className="screen-sub" style={{ fontSize: '1.05rem' }}>
+          {slide.body}
+        </p>
+        <div style={{ display: 'flex', gap: 6, marginTop: '0.5rem' }}>
+          {slides.map((_, idx) => (
             <span
               key={idx}
               style={{
                 width: idx === i ? 22 : 8,
                 height: 8,
                 borderRadius: 99,
-                background: idx === i ? 'var(--lantern)' : 'rgba(255,255,255,.25)',
+                background: idx === i ? 'var(--clay)' : 'rgba(107, 83, 68, 0.2)',
                 transition: 'width 200ms ease',
               }}
             />
           ))}
         </div>
       </div>
-      <div className="btn-row" style={{ marginTop: '1.25rem' }}>
+
+      <div className="btn-row" style={{ marginTop: '2rem' }}>
         <Button variant="ghost" onClick={finish}>
-          Skip
+          {t('skip')}
         </Button>
-        {i < SLIDES.length - 1 ? (
+        {i < slides.length - 1 ? (
           <Button variant="primary" onClick={() => setI((v) => v + 1)}>
-            Next
+            {t('next')}
           </Button>
         ) : (
           <Button variant="primary" onClick={finish}>
-            Continue
+            {t('continue')}
           </Button>
         )}
       </div>
+      <p className="trust-line">{t('saved_here')}</p>
     </main>
   );
 }

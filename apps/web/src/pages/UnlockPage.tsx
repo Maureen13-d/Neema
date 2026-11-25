@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { BrandMark } from '../ui/BrandMark';
+import { LangToggle } from '../ui/LangToggle';
+import { useLocale } from '../hooks/useLocale';
 import { getAuthMeta, setPin, unlockWithPin } from '../services/auth';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 
-/** Local PIN set / unlock — no cloud accounts. */
+/** Local PIN — private on this phone. */
 export function UnlockPage() {
   const nav = useNavigate();
+  const { t, lang } = useLocale();
   const [mode, setMode] = useState<'loading' | 'set' | 'unlock'>('loading');
   const [pin, setPinValue] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,11 +35,11 @@ export function UnlockPage() {
     }
   }
 
-  if (mode === 'loading') return <LoadingScreen message="Checking your lock…" />;
+  if (mode === 'loading') return <LoadingScreen />;
   if (error) {
     return (
       <ErrorScreen
-        title="Could not unlock"
+        title={lang === 'sw' ? 'Haikuweza kufungua' : 'Could not unlock'}
         detail={error}
         onRetry={() => setError(null)}
         onHome={() => nav('/')}
@@ -46,14 +49,27 @@ export function UnlockPage() {
 
   return (
     <main className="screen">
-      <BrandMark />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <BrandMark showSub />
+        <LangToggle />
+      </div>
       <h1 className="screen-title" style={{ marginTop: '1.2rem' }}>
-        {mode === 'set' ? 'Set your PIN' : 'Welcome back'}
+        {mode === 'set'
+          ? lang === 'sw'
+            ? 'Weka PIN yako'
+            : 'Set your PIN'
+          : lang === 'sw'
+            ? 'Karibu tena'
+            : 'Welcome back'}
       </h1>
       <p className="screen-sub">
         {mode === 'set'
-          ? 'A local PIN keeps Mama Passport private on this phone.'
-          : 'Enter your PIN to open Neema.'}
+          ? lang === 'sw'
+            ? 'PIN ya ndani inalinda taarifa zako kwenye simu hii.'
+            : 'A local PIN keeps your story private on this phone.'
+          : lang === 'sw'
+            ? 'Ingiza PIN kufungua Neema.'
+            : 'Enter your PIN to open Neema.'}
       </p>
       <div className="field">
         <label htmlFor="pin">PIN</label>
@@ -68,8 +84,15 @@ export function UnlockPage() {
         />
       </div>
       <Button variant="primary" disabled={busy || pin.length < 4} onClick={() => void submit()}>
-        {mode === 'set' ? 'Save PIN & enter' : 'Unlock'}
+        {mode === 'set'
+          ? lang === 'sw'
+            ? 'Hifadhi PIN'
+            : 'Save PIN'
+          : lang === 'sw'
+            ? 'Fungua'
+            : 'Unlock'}
       </Button>
+      <p className="trust-line">{t('saved_here')}</p>
     </main>
   );
 }
