@@ -6,6 +6,8 @@
 
 import type { AlertRecord, Contact, RuleId, TriageLevel } from '@neema/core';
 import { db } from '../storage/db';
+import { requireShareConsent } from './auth';
+import { assertFieldReady } from './readiness';
 
 export interface AlertDraft {
   level: Exclude<TriageLevel, 'GREEN' | 'UNKNOWN'>;
@@ -28,11 +30,26 @@ export function buildSmsLink(phone: string, body: string): string {
   return `sms:${normalized}?&body=${encodeURIComponent(body)}`;
 }
 
+export interface RaiseAlertOptions {
+  /**
+   * Demo/harness may set allowDemo: true to skip field-readiness gates.
+   * Real field use must leave this false/undefined.
+   */
+  allowDemo?: boolean;
+  /** Skip CHP consent check only when allowDemo is true. */
+  skipConsent?: boolean;
+}
+
 /** Persists a new alert and returns SMS links for contacts in escalation order. */
 export async function raiseAlert(
   draft: AlertDraft,
   contacts: Contact[],
+  options: RaiseAlertOptions = {},
 ): Promise<{ alert: AlertRecord; smsLinks: { contact: Contact; href: string }[] }> {
+  await assertFieldReady({ allowDemo: options.allowDemo === true });
+  if (!options.allowDemo || !options.skipConsent) {
+    await requireShareConsent('chp');
+  }
   const body = buildAlertSmsBody(draft);
   const ordered = [...contacts].sort((a, b) => a.escalationOrder - b.escalationOrder);
   const now = Date.now();
