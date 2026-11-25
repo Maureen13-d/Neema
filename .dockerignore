@@ -1,0 +1,9 @@
+.git
+.agents
+**/node_modules
+**/dist
+docs
+firmware
+*.log
+.env
+.env.*
