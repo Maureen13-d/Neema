@@ -55,6 +55,37 @@ export { default as triageConfigJson } from './config/triage.config.json';
 export { default as swMessages } from './messages/sw.json';
 
 export {
+  assertConfigSignedForFieldUse,
+  getUnsignedTriageConfig,
+  isConfigSignedForUse,
+  recordClinicianSignOff,
+  type ClinicianSignOff,
+  type SignedTriageConfig,
+} from './signoff.js';
+
+export {
+  applyMessageReview,
+  getMessageCatalog,
+  isCatalogFullyReviewed,
+  pendingMessageKeys,
+  type MessageEntry,
+  type MessageReviewStatus,
+} from './messages/catalog.js';
+
+export {
+  HARDWARE_CHECKS,
+  HARDWARE_DISCLAIMER,
+  finishHardwareValidation,
+  recordHardwareCheck,
+  startHardwareValidation,
+  type HardwareCheckDef,
+  type HardwareCheckId,
+  type HardwareCheckOutcome,
+  type HardwareCheckResult,
+  type HardwareValidationReport,
+} from './hardwareValidation.js';
+
+export {
   StubSymptomSpeechProvider,
   type SymptomSpeechHypothesis,
   type SymptomSpeechInput,
