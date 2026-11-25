@@ -1,30 +1,73 @@
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGuardian } from '../hooks/useGuardian';
 import { useLocale } from '../hooks/useLocale';
+import { useToday } from '../hooks/useToday';
+import { getMessageTextFor } from '../services/speech';
+import { recheckDelayMs } from '../services/recheck';
 import { BrandMark } from '../ui/BrandMark';
-import { Button } from '../ui/Button';
-import { StatusOrb } from '../ui/StatusOrb';
-import { LoadingScreen } from '../ui/LoadingScreen';
 import { LangToggle } from '../ui/LangToggle';
+import { LoadingScreen } from '../ui/LoadingScreen';
+import { levelLabel } from '../ui/levelLabel';
+import {
+  IconBand,
+  IconBell,
+  IconCheck,
+  IconChevron,
+  IconHeart,
+  IconPressure,
+  IconQr,
+  IconTemp,
+} from '../ui/icons';
 
-function bandState(g: ReturnType<typeof useGuardian>): {
-  labelKey: 'band_watching' | 'band_away' | 'band_weak' | 'waiting_signal';
-  state: 'ok' | 'warn' | 'off';
-} {
-  if (!g.connected) return { labelKey: 'band_away', state: 'off' };
-  const q = g.sample?.signalQuality ?? 0;
-  if (q > 0 && q < 50) return { labelKey: 'band_weak', state: 'warn' };
-  if (!g.sample) return { labelKey: 'waiting_signal', state: 'warn' };
-  return { labelKey: 'band_watching', state: 'ok' };
+const FULL_TERM_WEEKS = 40;
+
+function greetingKey(hour: number): string {
+  if (hour >= 5 && hour < 12) return 'greet_morning';
+  if (hour >= 12 && hour < 17) return 'greet_afternoon';
+  if (hour >= 17 && hour < 21) return 'greet_evening';
+  return 'greet_night';
 }
 
-/** Guardian home — one status, one next step. */
+function clock(tsMs: number, lang: 'en' | 'sw'): string {
+  return new Date(tsMs).toLocaleTimeString(lang === 'sw' ? 'sw-KE' : 'en-KE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function countdown(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+interface Action {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}
+
+interface Row {
+  key: string;
+  title: string;
+  meta: string;
+  to: string;
+  /** undefined = not a check-in, show an icon instead of a tick. */
+  done?: boolean;
+  icon?: ReactNode;
+}
+
+/** Home: greeting, one status card with one next step, live numbers, today's check-ins. */
 export function HomePage() {
   const nav = useNavigate();
   const g = useGuardian();
   const { t, lang } = useLocale();
   const level = g.triage?.level ?? 'UNKNOWN';
-  const band = bandState(g);
+  const today = useToday(`${level}:${g.recheck.status}`);
+
+  const name = today.name ?? 'Mama';
+  const alertActive = level === 'RED' || level === 'YELLOW';
   const recheckDue = g.recheck.status === 'due';
   const recheckScheduled = g.recheck.status === 'scheduled';
 
@@ -38,115 +81,221 @@ export function HomePage() {
           : t('waiting_signal');
 
   const body =
-    g.message ||
+    (g.triage ? getMessageTextFor(g.triage.messageKey, lang) : null) ??
     (level === 'GREEN'
       ? t('all_quiet')
-      : level === 'UNKNOWN'
-        ? lang === 'sw'
-          ? 'Unganisha bendi au ongeza shinikizo ili Neema ianze.'
-          : 'Connect your band or add a blood pressure so Neema can begin.'
-        : '');
+      : lang === 'sw'
+        ? 'Unganisha bendi au ongeza shinikizo ili Neema ianze.'
+        : 'Connect your band or add a blood pressure so Neema can begin.');
 
-  let primary: { label: string; onClick: () => void; danger?: boolean; href?: string } | null = null;
-
-  if (g.pendingSmsHref && (level === 'RED' || level === 'YELLOW')) {
-    primary = { label: t('open_sms'), onClick: () => undefined, href: g.pendingSmsHref, danger: level === 'RED' };
+  let action: Action | null = null;
+  if (g.pendingSmsHref && alertActive) {
+    action = { label: t('open_sms'), href: g.pendingSmsHref };
   } else if (level === 'RED') {
-    primary = { label: t('call_chp'), onClick: () => nav('/alert'), danger: true };
+    action = { label: t('call_chp'), onClick: () => nav('/alert') };
   } else if (recheckDue || level === 'YELLOW') {
-    primary = { label: t('recheck_now'), onClick: () => nav('/bp') };
+    action = { label: t('recheck_now'), onClick: () => nav('/bp') };
   } else if (!g.connected) {
-    primary = {
-      label: t('start_watch'),
-      onClick: () => void g.connectSimulator(),
-    };
+    action = { label: t('start_watch'), onClick: () => void g.connectSimulator() };
   } else if (level === 'UNKNOWN') {
-    primary = { label: t('add_bp'), onClick: () => nav('/bp') };
+    action = { label: t('add_bp'), onClick: () => nav('/bp') };
   }
 
+  let progress: { pct: number; label: string } | null = null;
+  if (recheckScheduled && g.recheckDueInSec !== null) {
+    const totalSec = recheckDelayMs(g.recheck.trigger) / 1000;
+    const pct = Math.min(100, Math.max(0, (1 - g.recheckDueInSec / totalSec) * 100));
+    progress = { pct, label: countdown(g.recheckDueInSec) };
+  } else if (level !== 'RED' && today.gestationWeeks !== null) {
+    const weeks = today.gestationWeeks;
+    progress = {
+      pct: Math.min(100, Math.max(0, (weeks / FULL_TERM_WEEKS) * 100)),
+      label:
+        lang === 'sw'
+          ? `Wiki ${weeks} kati ya ${FULL_TERM_WEEKS}`
+          : `Week ${weeks} of ${FULL_TERM_WEEKS}`,
+    };
+  }
+
+  const signal = g.sample?.signalQuality ?? 0;
+  let bandMeta = t('band_away');
+  if (g.connected && g.bandMode === 'simulator') bandMeta = t('band_practice');
+  else if (g.connected && !g.sample) bandMeta = t('waiting_signal');
+  else if (g.connected && signal < 50) bandMeta = t('band_weak');
+  else if (g.connected) bandMeta = t('band_watching');
+
+  const todayWord = t('today');
+  const rows: Row[] = [
+    {
+      key: 'bp',
+      title: t('pressure'),
+      meta:
+        today.bpToday && today.lastBp
+          ? `${todayWord}, ${clock(today.lastBp.tsMs, lang)} · ${today.lastBp.systolic}/${today.lastBp.diastolic}`
+          : t('not_yet_today'),
+      to: '/bp',
+      done: today.bpToday,
+    },
+    {
+      key: 'feel',
+      title: t('how_feel'),
+      meta:
+        today.symptomsToday && today.lastSymptomTsMs !== null
+          ? `${todayWord}, ${clock(today.lastSymptomTsMs, lang)}`
+          : t('not_yet_today'),
+      to: '/symptoms',
+      done: today.symptomsToday,
+    },
+    { key: 'band', title: t('band'), meta: bandMeta, to: '/vitals', icon: <IconBand /> },
+    { key: 'nurse', title: t('nurse_title'), meta: t('nurse_sub'), to: '/summary', icon: <IconQr /> },
+  ];
+
+  const heart = g.sample?.heartRate ?? null;
+  const temp = g.sample?.skinTempC ?? null;
+
   return (
-    <main className="screen">
+    <main className="screen screen--home">
       {g.loading ? <LoadingScreen /> : null}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <BrandMark showSub />
-        <LangToggle />
-      </div>
 
-      <div className="home-stage">
-        <div>
-          <StatusOrb level={level} />
-          <div style={{ textAlign: 'center' }}>
-            <span className="band-pill" data-state={band.state}>
-              {t(band.labelKey)}
-            </span>
-          </div>
+      <header className="topbar">
+        <BrandMark />
+        <div className="topbar__actions">
+          <LangToggle />
+          {alertActive ? (
+            <button type="button" className="icon-btn" aria-label={t('alerts')} onClick={() => nav('/alert')}>
+              <IconBell />
+              <span className="icon-btn__dot" aria-hidden />
+            </button>
+          ) : null}
         </div>
+      </header>
 
-        <div className="home-primary">
-          <h1 className="screen-title">{headline}</h1>
-          <p className="screen-sub" style={{ marginBottom: '0.75rem' }}>
-            {body}
-          </p>
-
-          {recheckScheduled && g.recheckDueInSec !== null && !recheckDue ? (
-            <p className="soft-note" style={{ marginBottom: '0.85rem' }}>
-              {lang === 'sw'
-                ? `Pima tena baada ya ${g.recheckDueInSec}s`
-                : `Recheck in ${g.recheckDueInSec}s`}
-            </p>
-          ) : null}
-
-          {primary ? (
-            primary.href ? (
-              <a
-                className={`btn ${primary.danger ? 'btn-danger' : 'btn-primary'}`}
-                href={primary.href}
-                style={{ width: '100%', marginBottom: '0.65rem' }}
-              >
-                {primary.label}
-              </a>
-            ) : (
-              <Button
-                variant={primary.danger ? 'danger' : 'primary'}
-                onClick={primary.onClick}
-                style={{ width: '100%', marginBottom: '0.65rem' }}
-              >
-                {primary.label}
-              </Button>
-            )
-          ) : (
-            <p className="soft-note" style={{ marginBottom: '0.85rem' }}>
-              {t('all_quiet')}
-            </p>
-          )}
-
-          {!g.connected ? (
-            <Button
-              variant="secondary"
-              onClick={() => void g.connectBluetooth()}
-              style={{ width: '100%', marginBottom: '0.65rem' }}
-            >
-              {t('connect_band')}
-            </Button>
-          ) : null}
-
-          {level === 'GREEN' || level === 'UNKNOWN' ? (
-            <div className="btn-row">
-              <Button variant="secondary" onClick={() => nav('/bp')}>
-                {t('add_bp')}
-              </Button>
-              <Button variant="secondary" onClick={() => nav('/symptoms')}>
-                {t('how_feel')}
-              </Button>
+      <div className="home-grid">
+        <section>
+          <div className="greet">
+            <div>
+              <h1 className="greet__title">
+                {t(greetingKey(new Date().getHours()))}, {name}
+              </h1>
+              <p className="greet__sub">{t('greet_sub')}</p>
             </div>
-          ) : level === 'YELLOW' || level === 'RED' ? (
-            <Button variant="ghost" onClick={() => nav('/alert')} style={{ width: '100%' }}>
-              {lang === 'sw' ? 'Fungua hatua zote' : 'See all steps'}
-            </Button>
+            <button
+              type="button"
+              className="avatar"
+              aria-label={t('your_passport')}
+              onClick={() => nav('/passport')}
+            >
+              {name.charAt(0).toUpperCase()}
+            </button>
+          </div>
+
+          <div className="hero-card" data-level={level} aria-live="polite">
+            <span className="hero-card__pill">
+              <i className="hero-card__dot" aria-hidden />
+              {levelLabel(level, lang)}
+            </span>
+            <h2 className="hero-card__title">{headline}</h2>
+            <p className="hero-card__sub">{body}</p>
+
+            {progress ? (
+              <div className="hero-card__progress">
+                <div className="hero-card__bar" aria-hidden>
+                  <span style={{ width: `${progress.pct}%` }} />
+                </div>
+                <span>{progress.label}</span>
+              </div>
+            ) : null}
+
+            {action ? (
+              action.href ? (
+                <a className="hero-card__action" href={action.href}>
+                  {action.label}
+                  <IconChevron />
+                </a>
+              ) : (
+                <button type="button" className="hero-card__action" onClick={action.onClick}>
+                  {action.label}
+                  <IconChevron />
+                </button>
+              )
+            ) : null}
+          </div>
+
+          {alertActive ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: '100%', marginTop: '0.5rem' }}
+              onClick={() => nav('/alert')}
+            >
+              {lang === 'sw' ? 'Ona hatua zote' : 'See all steps'}
+            </button>
           ) : null}
 
+          <div className="stat-row">
+            <div className="stat-tile" data-tone="heart">
+              <span className="stat-tile__icon">
+                <IconHeart />
+              </span>
+              <span className="stat-tile__value">
+                {heart ?? '—'}
+                {heart !== null ? <small>bpm</small> : null}
+              </span>
+              <span className="stat-tile__label">{t('heart')}</span>
+            </div>
+            <div className="stat-tile" data-tone="pressure">
+              <span className="stat-tile__icon">
+                <IconPressure />
+              </span>
+              <span className="stat-tile__value">
+                {today.lastBp ? `${today.lastBp.systolic}/${today.lastBp.diastolic}` : '—'}
+              </span>
+              <span className="stat-tile__label">{t('pressure')}</span>
+            </div>
+            <div className="stat-tile" data-tone="temp">
+              <span className="stat-tile__icon">
+                <IconTemp />
+              </span>
+              <span className="stat-tile__value">
+                {temp !== null ? temp.toFixed(1) : '—'}
+                {temp !== null ? <small>°C</small> : null}
+              </span>
+              <span className="stat-tile__label">{t('temp')}</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="section-title">{todayWord}</h2>
+          <ul className="check-list">
+            {rows.map((row) => (
+              <li key={row.key}>
+                <button
+                  type="button"
+                  className="check-row"
+                  data-done={row.done === true}
+                  onClick={() => nav(row.to)}
+                >
+                  {row.icon ? (
+                    <span className="check-row__mark check-row__mark--icon">{row.icon}</span>
+                  ) : (
+                    <span className="check-row__mark">
+                      <IconCheck />
+                    </span>
+                  )}
+                  <span>
+                    <span className="check-row__title">{row.title}</span>
+                    <span className="check-row__meta">{row.meta}</span>
+                  </span>
+                  <span className="check-row__chev">
+                    <IconChevron />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
           <p className="trust-line">{t('saved_here')}</p>
-        </div>
+        </section>
       </div>
     </main>
   );

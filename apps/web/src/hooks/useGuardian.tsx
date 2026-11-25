@@ -20,7 +20,12 @@ import { createVitalsPipeline } from '../services/vitalsPipeline';
 import { runTriage } from '../services/triageRunner';
 import { applyBandFeedback } from '../services/bandFeedback';
 import type { BandSource } from '../services/bandSource';
-import { createRecheckLoop, latestBpId, type RecheckState } from '../services/recheck';
+import {
+  createRecheckLoop,
+  latestBpId,
+  recheckDelayMs,
+  type RecheckState,
+} from '../services/recheck';
 import { runAlertChain } from '../services/alertChain';
 import { acknowledgeRed } from '../services/alerts';
 import type { EscalationHandle } from '../services/escalation';
@@ -56,12 +61,6 @@ interface GuardianState {
 }
 
 const GuardianContext = createContext<GuardianState | null>(null);
-
-/** Demo builds use a 60s recheck so the loop is testable; production uses config. */
-function recheckDelayMs(result: TriageResult): number {
-  if (import.meta.env.DEV) return 60_000;
-  return (result.recheckInMinutes ?? 45) * 60_000;
-}
 
 export function GuardianProvider({ children }: { children: ReactNode }) {
   const bandRef = useRef<BandSource>(createSimulatorBand(1));

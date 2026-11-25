@@ -106,6 +106,16 @@ export function createRecheckLoop(): RecheckHandle {
   };
 }
 
+/**
+ * How long to wait before asking for the second reading.
+ * Dev builds use 60s so the loop can be exercised; production uses the triage config.
+ */
+export function recheckDelayMs(result: TriageResult | null): number {
+  if (import.meta.env.DEV) return 60_000;
+  const minutes = result?.recheckInMinutes ?? getDefaultTriageConfig().yellowRecheckMinutes;
+  return minutes * 60_000;
+}
+
 /** Helper: pick the latest BP id from a list (for scheduleFrom). */
 export function latestBpId(bp: BpReading[]): string | null {
   if (bp.length === 0) return null;

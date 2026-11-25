@@ -4,6 +4,7 @@
  * falling back to a provided audio URL map (pre-recorded).
  */
 
+import { getMessageCatalog } from '@neema/core';
 import swMessages from '../../../../packages/core/src/messages/sw.json';
 
 export type SpeakOptions = {
@@ -54,4 +55,14 @@ export async function speakMessageKey(
 /** Returns the Swahili draft text for a message key (for on-screen display). */
 export function getMessageText(messageKey: string): string {
   return lookupMessage(messageKey) ?? messageKey;
+}
+
+/**
+ * On-screen text for a message key in the mother's chosen language.
+ * English uses the catalog gloss; returns null when the key has no text.
+ */
+export function getMessageTextFor(messageKey: string, lang: 'en' | 'sw'): string | null {
+  if (lang === 'sw') return lookupMessage(messageKey) ?? null;
+  const entry = getMessageCatalog().find((e) => e.key === messageKey);
+  return entry?.enGloss || null;
 }
