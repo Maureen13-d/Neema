@@ -71,3 +71,11 @@ export {
   type DemoScenario,
   type DemoScenarioId,
 } from './demoScenarios.js';
+
+export {
+  computeTrendSlope,
+  type TrendOptions,
+  type TrendPoint,
+  type TrendResult,
+  type TrendSignal,
+} from './trend.js';
