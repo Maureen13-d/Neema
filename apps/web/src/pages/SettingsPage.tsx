@@ -4,10 +4,12 @@ import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { getReadiness, type ReadinessReport } from '../services/readiness';
 import { lockSession } from '../services/auth';
+import { useGuardian } from '../hooks/useGuardian';
 
 /** Settings, readiness, and secondary destinations. */
 export function SettingsPage() {
   const nav = useNavigate();
+  const g = useGuardian();
   const [ready, setReady] = useState<ReadinessReport | null>(null);
 
   useEffect(() => {
@@ -35,6 +37,29 @@ export function SettingsPage() {
           </ul>
         ) : null}
       </div>
+
+      {g.bandMode === 'simulator' && g.connected ? (
+        <div className="panel" style={{ marginBottom: '1rem' }}>
+          <strong>Demo band scenarios</strong>
+          <p style={{ margin: '0.4rem 0 0.65rem', opacity: 0.75, fontSize: '0.85rem' }}>
+            While your friend finishes the physical band, drive vitals from the simulator.
+          </p>
+          <div className="btn-row" style={{ flexWrap: 'wrap' }}>
+            <Button variant="ghost" onClick={() => void g.setDemoScenario(1)}>
+              Calm
+            </Button>
+            <Button variant="ghost" onClick={() => void g.setDemoScenario(2)}>
+              Drift
+            </Button>
+            <Button variant="ghost" onClick={() => void g.setDemoScenario(3)}>
+              Fever
+            </Button>
+          </div>
+          <p style={{ margin: '0.65rem 0 0', opacity: 0.7, fontSize: '0.8rem' }}>
+            Tip: enter BP ≥140/90 or add headache + vision for YELLOW/RED.
+          </p>
+        </div>
+      ) : null}
 
       <div className="btn-row">
         <Button variant="secondary" onClick={() => nav('/vitals')}>

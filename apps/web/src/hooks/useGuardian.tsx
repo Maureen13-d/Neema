@@ -51,6 +51,8 @@ interface GuardianState {
   clearPendingSms: () => void;
   clearError: () => void;
   openPendingSms: () => void;
+  /** Simulator-only: switch demo vitals scenario (0–3). */
+  setDemoScenario: (n: 0 | 1 | 2 | 3) => Promise<void>;
 }
 
 const GuardianContext = createContext<GuardianState | null>(null);
@@ -311,6 +313,10 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       },
       openPendingSms() {
         if (pendingSmsHref) window.location.href = pendingSmsHref;
+      },
+      async setDemoScenario(n) {
+        await bandRef.current.sendCommand({ kind: 'demo', scenario: n });
+        setLastChainNote(`Simulator scenario ${n} active.`);
       },
     }),
     [
