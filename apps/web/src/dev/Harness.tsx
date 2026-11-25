@@ -8,6 +8,7 @@ import { createSimulatorBand } from '../services/simulatorBand';
 import { createVitalsPipeline } from '../services/vitalsPipeline';
 import { runTriage } from '../services/triageRunner';
 import { buildAlertSmsBody, buildSmsLink, raiseAlert, acknowledgeRed } from '../services/alerts';
+import { applyBandFeedback } from '../services/bandFeedback';
 import { acknowledgeAndStop, startEscalation, type EscalationHandle } from '../services/escalation';
 import { LocationError, requestAlertLocation } from '../services/location';
 import { getMessageText, speakMessageKey } from '../services/speech';
@@ -24,9 +25,9 @@ export function Harness() {
   const [diastolic, setDiastolic] = useState('80');
   const [symptom, setSymptom] = useState('headache');
   const [log, setLog] = useState<string[]>([]);
-  const [stickyRed, setStickyRed] = useState<TriageResult | null>(null);
   const [smsHref, setSmsHref] = useState<string | null>(null);
   const escalationRef = useRef<EscalationHandle | null>(null);
+  const lastLevelRef = useRef<string | null>(null);
 
   const band = useMemo(() => createSimulatorBand(1), []);
   const pipeline = useMemo(() => createVitalsPipeline(), []);
@@ -54,13 +55,16 @@ export function Harness() {
         gestationWeeks: 32,
         sosActive: s.sos,
         markedResting: true,
-        stickyRed,
+        timeZone: 'Africa/Nairobi',
       });
       setTriage(result);
-      if (result.level === 'RED') setStickyRed(result);
+      if (lastLevelRef.current !== result.level) {
+        lastLevelRef.current = result.level;
+        await applyBandFeedback(band, result.level);
+      }
     });
     return unsub;
-  }, [band, pipeline, stickyRed]);
+  }, [band, pipeline]);
 
   async function connect() {
     if (sourceKind === 'bluetooth') {
@@ -170,7 +174,6 @@ export function Harness() {
       await acknowledgeRed(latest.id);
     }
     escalationRef.current = null;
-    setStickyRed(null);
     setLog((l) => ['RED acknowledged', ...l]);
   }
 
