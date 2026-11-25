@@ -65,6 +65,47 @@ export interface VisitRecord {
   nextAppointmentTsMs?: number;
 }
 
+export interface AuthRow {
+  id: string;
+  pinEnabled: boolean;
+  saltB64?: string;
+  pinVerifier?: string;
+  updatedAtMs: number;
+}
+
+export interface SignOffRow {
+  id: string; // 'triage'
+  configVersion: string;
+  reviewerName: string;
+  reviewerRole: string;
+  reviewedOn: string;
+  attestation: string;
+  signed: boolean;
+  notes?: string;
+  savedAtMs: number;
+}
+
+export interface MessageReviewRow {
+  key: string;
+  status: 'draft' | 'in_review' | 'reviewed' | 'rejected';
+  sw: string;
+  enGloss: string;
+  reviewerName?: string;
+  reviewedOn?: string;
+  notes?: string;
+}
+
+export interface HardwareReportRow {
+  id: string;
+  deviceLabel: string;
+  operatorName: string;
+  startedAtMs: number;
+  finishedAtMs?: number;
+  outcomesJson: string;
+  engineeringPass: boolean;
+  disclaimer: string;
+}
+
 export class NeemaDb extends Dexie {
   profile!: Table<ProfileRow, string>;
   vitalsMinutes!: Table<VitalsMinute, number>;
@@ -76,6 +117,10 @@ export class NeemaDb extends Dexie {
   consent!: Table<ConsentRow, string>;
   baseline!: Table<BaselineRow, string>;
   visits!: Table<VisitRecord, string>;
+  auth!: Table<AuthRow, string>;
+  signOff!: Table<SignOffRow, string>;
+  messageReviews!: Table<MessageReviewRow, string>;
+  hardwareReports!: Table<HardwareReportRow, string>;
 
   constructor() {
     super('neema-mama-passport');
@@ -100,6 +145,22 @@ export class NeemaDb extends Dexie {
       consent: 'id',
       baseline: 'id',
       visits: 'id, tsMs',
+    });
+    this.version(3).stores({
+      profile: 'id',
+      vitalsMinutes: 'tsMs',
+      vitalsDaily: 'dayTsMs',
+      bp: 'id, tsMs',
+      symptoms: 'id, tsMs',
+      alerts: 'id, tsMs',
+      contacts: 'id, escalationOrder',
+      consent: 'id',
+      baseline: 'id',
+      visits: 'id, tsMs',
+      auth: 'id',
+      signOff: 'id',
+      messageReviews: 'key',
+      hardwareReports: 'id, startedAtMs',
     });
   }
 }
