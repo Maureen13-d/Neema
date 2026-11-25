@@ -31,6 +31,7 @@ export {
   calibrateSkinTempC,
   evaluateTriage,
   getDefaultTriageConfig,
+  localHour,
   type TriageConfig,
 } from './triage.js';
 

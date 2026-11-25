@@ -114,6 +114,11 @@ export interface TriageInput {
   markedResting: boolean;
   /** z-scores from the personal baseline. */
   baselineZ: { hr: number | null; temp: number | null };
+  /**
+   * IANA timezone for sleep-window checks (e.g. Africa/Nairobi).
+   * When omitted, sleep window uses UTC.
+   */
+  timeZone?: string;
 }
 
 /** Output of triage. Fully explainable. */

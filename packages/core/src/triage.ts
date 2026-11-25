@@ -164,7 +164,13 @@ export function evaluateTriage(
 
     if (
       input.stage === 'postpartum' &&
-      hasSustainedFastPulse(input.vitals, config, input.markedResting, input.nowMs)
+      hasSustainedFastPulse(
+        input.vitals,
+        config,
+        input.markedResting,
+        input.nowMs,
+        input.timeZone,
+      )
     ) {
       hits.push({
         level: 'RED',
@@ -179,7 +185,7 @@ export function evaluateTriage(
   if (
     input.baselineZ.hr !== null &&
     input.baselineZ.hr > config.baselineHrZThreshold &&
-    isRestContext(input.markedResting, input.nowMs, config) &&
+    isRestContext(input.markedResting, input.nowMs, config, input.timeZone) &&
     hasSustainedHighHrForBaseline(input.vitals, config)
   ) {
     hits.push({
@@ -295,8 +301,9 @@ function hasSustainedFastPulse(
   config: TriageConfig,
   markedResting: boolean,
   nowMs: number,
+  timeZone?: string,
 ): boolean {
-  if (!isRestContext(markedResting, nowMs, config)) return false;
+  if (!isRestContext(markedResting, nowMs, config, timeZone)) return false;
   const windowMs = config.postpartumFastPulseMinutes * 60_000;
   if (vitals.length === 0) return false;
   const end = vitals[vitals.length - 1]!.tsMs;
@@ -315,11 +322,33 @@ function hasSustainedHighHrForBaseline(vitals: VitalsMinute[], config: TriageCon
   return inWindow.length >= Math.max(1, Math.floor(config.baselineHrMinutes / 2));
 }
 
-function isRestContext(markedResting: boolean, nowMs: number, config: TriageConfig): boolean {
+/**
+ * Local hour (0–23) in an IANA zone, or UTC when zone is omitted/invalid.
+ */
+export function localHour(nowMs: number, timeZone?: string): number {
+  if (!timeZone) return new Date(nowMs).getUTCHours();
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).formatToParts(new Date(nowMs));
+    const hourPart = parts.find((p) => p.type === 'hour')?.value;
+    return hourPart ? Number(hourPart) : new Date(nowMs).getUTCHours();
+  } catch {
+    return new Date(nowMs).getUTCHours();
+  }
+}
+
+function isRestContext(
+  markedResting: boolean,
+  nowMs: number,
+  config: TriageConfig,
+  timeZone?: string,
+): boolean {
   if (markedResting) return true;
-  const hour = new Date(nowMs).getUTCHours();
+  const hour = localHour(nowMs, timeZone);
   const { startHour, endHour } = config.sleepWindow;
-  // ASSUMPTION: sleep window compared in UTC until the app stores local timezone.
   if (startHour > endHour) return hour >= startHour || hour < endHour;
   return hour >= startHour && hour < endHour;
 }
