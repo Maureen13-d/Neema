@@ -59,3 +59,15 @@ export {
   type SymptomSpeechInput,
   type SymptomSpeechProvider,
 } from './symptomSpeech.js';
+
+export {
+  DEMO_SCENARIOS,
+  getDemoScenario,
+  scenarioA,
+  scenarioBSettled,
+  scenarioBYellow,
+  scenarioC,
+  scenarioD,
+  type DemoScenario,
+  type DemoScenarioId,
+} from './demoScenarios.js';
