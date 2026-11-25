@@ -2,12 +2,14 @@
  * Minimal live harness for backend wiring — not the real mother-facing UI.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TriageResult, VitalsSample } from '@neema/core';
 import { createSimulatorBand } from '../services/simulatorBand';
 import { createVitalsPipeline } from '../services/vitalsPipeline';
 import { runTriage } from '../services/triageRunner';
 import { buildAlertSmsBody, buildSmsLink, raiseAlert, acknowledgeRed } from '../services/alerts';
+import { acknowledgeAndStop, startEscalation, type EscalationHandle } from '../services/escalation';
+import { LocationError, requestAlertLocation } from '../services/location';
 import { getMessageText, speakMessageKey } from '../services/speech';
 import { db } from '../storage/db';
 
@@ -24,9 +26,24 @@ export function Harness() {
   const [log, setLog] = useState<string[]>([]);
   const [stickyRed, setStickyRed] = useState<TriageResult | null>(null);
   const [smsHref, setSmsHref] = useState<string | null>(null);
+  const escalationRef = useRef<EscalationHandle | null>(null);
 
   const band = useMemo(() => createSimulatorBand(1), []);
   const pipeline = useMemo(() => createVitalsPipeline(), []);
+
+  useEffect(() => {
+    const id = window.setInterval(async () => {
+      const handle = escalationRef.current;
+      if (!handle) return;
+      const step = await handle.tick();
+      if (step.kind === 'notify') {
+        const href = buildSmsLink(step.contact.phone, `NEEMA escalate (${step.label}): ${step.contact.name}`);
+        setSmsHref(href);
+        setLog((l) => [`Escalation → ${step.label}: ${step.contact.name}`, ...l]);
+      }
+    }, 5_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const unsub = band.onVitals(async (s) => {
@@ -101,33 +118,58 @@ export function Harness() {
         phone: '+254700000000',
         escalationOrder: 1,
       },
-    ];
-    const { alert, smsLinks } = await raiseAlert(
       {
-        level,
-        firedRules: triage.firedRules,
-        motherName: 'Demo',
-        reasonCode: triage.reasons[0] ?? 'alert',
+        id: 'family-1',
+        name: 'Family',
+        role: 'family' as const,
+        phone: '+254711111111',
+        escalationOrder: 2,
       },
-      contacts,
-    );
+      {
+        id: 'sup-1',
+        name: 'Supervisor',
+        role: 'supervisor' as const,
+        phone: '+254722222222',
+        escalationOrder: 3,
+      },
+    ];
+
+    let locationUrl: string | undefined;
+    try {
+      const loc = await requestAlertLocation();
+      locationUrl = loc.mapsUrl;
+      setLog((l) => [`Location ok (±${loc.accuracyM ?? '?'}m)`, ...l]);
+    } catch (err) {
+      const msg = err instanceof LocationError ? err.message : String(err);
+      setLog((l) => [`Location skipped: ${msg}`, ...l]);
+    }
+
+    const draft = {
+      level,
+      firedRules: triage.firedRules,
+      motherName: 'Demo',
+      reasonCode: triage.reasons[0] ?? 'alert',
+      ...(locationUrl ? { locationUrl } : {}),
+    };
+    const { alert, smsLinks } = await raiseAlert(draft, contacts);
     const first = smsLinks[0];
     if (first) setSmsHref(first.href);
+    if (level === 'RED') {
+      escalationRef.current?.stop();
+      escalationRef.current = startEscalation(alert.id, contacts);
+    }
     await speakMessageKey(triage.messageKey);
-    setLog((l) => [
-      `Alert ${alert.id} ${level}: ${buildAlertSmsBody({
-        level,
-        firedRules: triage.firedRules,
-        motherName: 'Demo',
-        reasonCode: triage.reasons[0] ?? 'alert',
-      })}`,
-      ...l,
-    ]);
+    setLog((l) => [`Alert ${alert.id} ${level}: ${buildAlertSmsBody(draft)}`, ...l]);
   }
 
   async function ack() {
     const latest = await db.alerts.orderBy('tsMs').reverse().first();
-    if (latest) await acknowledgeRed(latest.id);
+    if (latest && escalationRef.current) {
+      await acknowledgeAndStop(latest.id, escalationRef.current);
+    } else if (latest) {
+      await acknowledgeRed(latest.id);
+    }
+    escalationRef.current = null;
     setStickyRed(null);
     setLog((l) => ['RED acknowledged', ...l]);
   }
