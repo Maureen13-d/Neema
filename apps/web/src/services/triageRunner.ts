@@ -1,6 +1,6 @@
 /**
  * Loads recent local data and runs evaluateTriage.
- * Sticky RED is enforced here via the active alert record.
+ * Sticky RED is always loaded from IndexedDB (unacknowledged RED stays active).
  */
 
 import {
@@ -19,22 +19,35 @@ export interface RunnerOptions {
   gestationWeeks?: number;
   sosActive: boolean;
   markedResting: boolean;
-  /** When set, RED remains until acknowledged even if rules would clear. */
-  stickyRed?: TriageResult | null;
+  /** IANA zone for sleep window; default Africa/Nairobi. */
+  timeZone?: string;
+}
+
+/**
+ * Returns the active unacknowledged RED alert result shape if one exists.
+ */
+export async function loadStickyRed(nowMs: number = Date.now()): Promise<TriageResult | null> {
+  const active = await db.alerts.orderBy('tsMs').reverse().first();
+  if (!active || active.level !== 'RED' || active.acknowledgedAtMs !== undefined) return null;
+  return {
+    level: 'RED',
+    firedRules: active.firedRules,
+    reasons: ['sticky_red'],
+    messageKey: 'red_go_now',
+    configVersion: 'sticky',
+    evaluatedAtMs: nowMs,
+  };
 }
 
 /**
  * Runs triage against IndexedDB history + current SOS/rest flags.
+ * Unacknowledged RED from the alerts table always wins until cleared.
  */
 export async function runTriage(options: RunnerOptions): Promise<TriageResult> {
-  if (options.stickyRed && options.stickyRed.level === 'RED') {
-    const active = await db.alerts.orderBy('tsMs').reverse().first();
-    if (active && active.level === 'RED' && active.acknowledgedAtMs === undefined) {
-      return { ...options.stickyRed, evaluatedAtMs: options.nowMs ?? Date.now() };
-    }
-  }
-
   const nowMs = options.nowMs ?? Date.now();
+  const sticky = await loadStickyRed(nowMs);
+  if (sticky) return sticky;
+
   const since = nowMs - 30 * 60_000;
   const vitals = await db.vitalsMinutes.where('tsMs').aboveOrEqual(since).sortBy('tsMs');
   const bp = (await db.bp.orderBy('tsMs').toArray()).filter((b) => b.tsMs >= since) as BpReading[];
@@ -46,15 +59,16 @@ export async function runTriage(options: RunnerOptions): Promise<TriageResult> {
   const tempBaseline = await db.baseline.get('temp');
   const latest = vitals[vitals.length - 1];
 
-  const result = evaluateTriage({
+  return evaluateTriage({
     nowMs,
     stage: options.stage,
-    gestationWeeks: options.gestationWeeks,
+    ...(options.gestationWeeks !== undefined ? { gestationWeeks: options.gestationWeeks } : {}),
     vitals,
     bp,
     symptoms,
     sosActive: options.sosActive,
     markedResting: options.markedResting,
+    timeZone: options.timeZone ?? 'Africa/Nairobi',
     baselineZ: {
       hr:
         hrBaseline && latest?.hrMean !== null && latest?.hrMean !== undefined
@@ -86,6 +100,4 @@ export async function runTriage(options: RunnerOptions): Promise<TriageResult> {
           : null,
     },
   });
-
-  return result;
 }
