@@ -178,4 +178,89 @@ describe('evaluateTriage', () => {
     expect(result.level).toBe('YELLOW');
     expect(result.firedRules).toContain('R8_PULSE_ABOVE_BASELINE');
   });
+
+  it('raises RED when raised BP persists on recheck (R4)', () => {
+    const now = Date.UTC(2026, 10, 26, 2, 0, 0);
+    const result = evaluateTriage(
+      baseInput({
+        nowMs: now,
+        bp: [
+          {
+            id: '1',
+            tsMs: now - 45 * 60_000,
+            systolic: 146,
+            diastolic: 92,
+            enteredBy: 'mother',
+            source: 'home_cuff',
+          },
+          {
+            id: '2',
+            tsMs: now - 5_000,
+            systolic: 144,
+            diastolic: 91,
+            enteredBy: 'mother',
+            source: 'home_cuff',
+          },
+        ],
+      }),
+    );
+    expect(result.level).toBe('RED');
+    expect(result.firedRules).toContain('R4_RAISED_BP_PERSISTS');
+  });
+
+  it('raises YELLOW for sustained fever (R6)', () => {
+    const now = Date.UTC(2026, 10, 26, 2, 0, 0);
+    const vitals: VitalsMinute[] = [];
+    for (let i = 0; i < 12; i++) {
+      vitals.push({
+        tsMs: now - (11 - i) * 60_000,
+        hrMean: 80,
+        hrMin: 78,
+        hrMax: 82,
+        tempMeanC: 38.2,
+        validFraction: 1,
+      });
+    }
+    const result = evaluateTriage(baseInput({ nowMs: now, stage: 'pregnancy', vitals }));
+    expect(result.level).toBe('YELLOW');
+    expect(result.firedRules).toContain('R6_FEVER');
+  });
+
+  it('raises YELLOW for reduced baby movement at >=28 weeks (R10)', () => {
+    const result = evaluateTriage(
+      baseInput({
+        gestationWeeks: 30,
+        symptoms: [
+          { id: 's', tsMs: 1, codes: ['baby_moving_less'], inputMethod: 'tap' },
+        ],
+      }),
+    );
+    expect(result.level).toBe('YELLOW');
+    expect(result.firedRules).toContain('R10_REDUCED_BABY_MOVEMENT');
+  });
+
+  it('never treats UNKNOWN as GREEN when signal is bad', () => {
+    const result = evaluateTriage(
+      baseInput({
+        vitals: [
+          {
+            tsMs: 1,
+            hrMean: null,
+            hrMin: null,
+            hrMax: null,
+            tempMeanC: null,
+            validFraction: 0,
+          },
+        ],
+      }),
+    );
+    expect(result.level).not.toBe('GREEN');
+    expect(result.level).toBe('UNKNOWN');
+  });
+
+  it('keeps RED when SOS fires even if vitals look fine', () => {
+    const result = evaluateTriage(baseInput({ sosActive: true }));
+    expect(result.level).toBe('RED');
+    expect(result.firedRules).toContain('R9_SOS');
+  });
 });
