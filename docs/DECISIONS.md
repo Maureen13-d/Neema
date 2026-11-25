@@ -5,7 +5,7 @@ Recorded while implementing from the Backend Cursor brief (PDF pages 1–8 were 
 ## Assumptions
 
 1. **BLE packet layout** — Defined in `packages/core/src/protocol.ts` (10-byte vitals notify, 3-byte command). Firmware mirrors this. Change both sides together.
-2. **Sleep window in UTC** — Rest-context detection uses UTC hours until the app stores a local timezone.
+2. **Sleep window timezone** — Rest-context uses `Africa/Nairobi` by default via `Intl` (`TriageInput.timeZone`).
 3. **Baseline learning period** — ~3 days of minute samples before R8 z-scores are trusted.
 4. **Web app first** — PWA/Vite harness only; native Flutter shell is roadmap.
 5. **SMS** — Prototype opens a prefilled `sms:` link; no silent SMS or gateway.
