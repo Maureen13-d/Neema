@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useGuardian } from '../hooks/useGuardian';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
+import { SummaryQr } from '../ui/SummaryQr';
 import { buildSummaryForQr } from '../services/summaryQr';
 import { loadProfile } from '../services/passport';
 import { db } from '../storage/db';
-import { useEffect } from 'react';
 
-/** Nurse one-page handoff with QR payload. */
+/** Nurse one-page handoff with real QR payload. */
 export function SummaryPage() {
   const g = useGuardian();
   const [name, setName] = useState('Mama');
@@ -59,24 +59,8 @@ export function SummaryPage() {
       </h1>
       <p className="screen-sub">One page. About 30 seconds. You choose what is shared.</p>
       <div className="panel" style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: 180,
-            height: 180,
-            margin: '0 auto 1rem',
-            borderRadius: 18,
-            background: `
-              repeating-linear-gradient(0deg, #062e2c, #062e2c 8px, #0a4f4a 8px, #0a4f4a 16px),
-              repeating-linear-gradient(90deg, #062e2c, #062e2c 8px, #0a4f4a 8px, #0a4f4a 16px)
-            `,
-            display: 'grid',
-            placeItems: 'center',
-            border: '4px solid var(--lantern)',
-            boxShadow: 'var(--shadow)',
-          }}
-          aria-hidden
-        >
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>QR</span>
+        <div style={{ display: 'grid', placeItems: 'center', marginBottom: '1rem' }}>
+          <SummaryQr payload={payload} />
         </div>
         <p style={{ margin: 0 }}>
           <strong>{preview.mother ?? name}</strong> · {preview.level ?? g.triage?.level ?? '—'}
