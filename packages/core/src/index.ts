@@ -52,3 +52,10 @@ export {
 
 export { default as triageConfigJson } from './config/triage.config.json';
 export { default as swMessages } from './messages/sw.json';
+
+export {
+  StubSymptomSpeechProvider,
+  type SymptomSpeechHypothesis,
+  type SymptomSpeechInput,
+  type SymptomSpeechProvider,
+} from './symptomSpeech.js';
