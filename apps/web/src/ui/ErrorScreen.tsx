@@ -1,7 +1,8 @@
 import { Button } from './Button';
+import { IconAlert } from './icons';
 import { useLocale } from '../hooks/useLocale';
 
-/** Recoverable error — human words, clear recovery. */
+/** Recoverable error: says what happened and how to get moving again. */
 export function ErrorScreen({
   title,
   detail,
@@ -17,10 +18,10 @@ export function ErrorScreen({
   return (
     <div className="overlay" role="alert">
       <div className="overlay-card">
-        <div className="error-mark" aria-hidden>
-          !
+        <div className="error-mark">
+          <IconAlert />
         </div>
-        <h2 className="screen-title" style={{ fontSize: '1.5rem' }}>
+        <h2 className="screen-title" style={{ fontSize: '1.45rem' }}>
           {title ?? t('something_wrong')}
         </h2>
         {detail ? <p className="screen-sub">{detail}</p> : null}

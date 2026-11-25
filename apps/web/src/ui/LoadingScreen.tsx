@@ -7,9 +7,7 @@ export function LoadingScreen({ message }: { message?: string }) {
     <div className="overlay" role="status" aria-live="polite">
       <div className="overlay-card">
         <div className="spinner" aria-hidden />
-        <p style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>
-          {message ?? t('loading')}
-        </p>
+        <p className="overlay-card__message">{message ?? t('loading')}</p>
       </div>
     </div>
   );

@@ -2,40 +2,50 @@
 
 ## World
 
-**Warm lamp + linen** — soft cream linen surfaces, clay earth accents, muted rose for danger. Feels like a quiet room with a lamp on at 2am, not a clinic dashboard or a teal tech brand.
+**Soft lavender glass.** Pale lavender-white backgrounds with blurred colour behind frosted white cards, one periwinkle brand colour, large friendly radii, and a single rounded sans. Borrowed from the reference mock the team chose (greeting header, stat tiles, gradient hero card, check-in list, bottom bar with a centre add button).
 
 ## Brand signal
 
-Wordmark **Neema** stays visible on every mother screen. Status colour is the second signal. No marketing landing page — open into care.
+The **Neema** mark (a crescent keeping watch, one small light beside it) and wordmark sit top-left on every screen. No marketing landing page: the app opens into care.
 
 ## Colour
 
 | Token | Value | Use |
 |---|---|---|
-| `--linen` | `#FAF6F0` | App background |
-| `--linen-deep` | `#EFE6DA` | Soft panels |
-| `--clay` | `#6B5344` | Primary actions, brand ink-warm |
-| `--clay-soft` | `#8B735F` | Secondary text, borders |
-| `--lamp` | `#C4A574` | Attention, YELLOW, warm accent |
-| `--lamp-glow` | `#E8D4B0` | Soft highlights |
-| `--rose` | `#B76E79` | RED alerts |
-| `--calm` | `#5A7A62` | GREEN / all quiet |
-| `--ink` | `#2C241C` | Body text |
-| `--mist` | `#F3EDE4` | Nested surfaces |
+| `--bg` / `--bg-deep` | `#F4F3FD` / `#E9E7FB` | App background |
+| `--glass` / `--glass-strong` | white 62% / 88% | Cards, nav, sheets (with blur) |
+| `--tint` | `#EBE9FE` | Icon bubbles, active nav |
+| `--primary` | `#6558F5` | Brand, active states |
+| `--primary-deep` → `--primary-mid` | `#5246DD` → `#6A5CF0` | Primary button gradient (white text passes 4.5:1) |
+| `--ink` / `--ink-muted` | `#1B1A33` / `#5F5E7A` | Text |
+| `--calm` | `#1F9D74` | GREEN status dot and orb |
+| `--warn-soft` → `--warn` | `#FFD27A` → `#F7A93B` | YELLOW card and orb, always with `--warn-ink` text |
+| `--danger-deep` → `--danger` | `#BF2346` → `#D83452` | RED card, orb, danger button |
+
+## Status rules
+
+- The home hero card carries the status. GREEN is the brand gradient with a green dot and the word "Okay"; YELLOW turns the whole card amber; RED turns it red.
+- UNKNOWN is never a filled card. It is a dashed, empty-looking glass card so "waiting" cannot be mistaken for "okay".
+- Every status also has a word (Okay / Check / Go now / Waiting). Colour is never the only signal.
 
 ## Type
 
-- Display: **Fraunces** (warm soft serif)
-- UI: **Manrope** (clear, large tap targets)
-
-## Motion
-
-Status orb breathe, screen enter, soft RED pulse. Honour `prefers-reduced-motion`.
+**Plus Jakarta Sans** (variable, self-hosted through `@fontsource-variable` so it works offline). Headings 800 with tight tracking, body 400–500, numbers tabular.
 
 ## Layout
 
-Phone-first column. Tablet ≥768px: wider stage. Laptop ≥1100px: home can split status + next step. No landing page.
+- Phone: single column, floating bottom bar with a raised centre "+".
+- Tablet (≥768px): wider column, the add sheet becomes a centred dialog.
+- Laptop (≥1100px): the bar becomes a left side rail and home splits into two columns (status and numbers on the left, today's check-ins on the right).
 
 ## Components
 
-Large tap targets (≥48px). One primary CTA per screen. Secondary destinations live in nav/More — not piled on home.
+- Hero status card: status pill, headline, one sentence, optional progress (recheck countdown or pregnancy week), one white action button.
+- Stat tiles: heart rate, last blood pressure, skin temperature.
+- Check-in rows: tick when done today, otherwise an empty ring.
+- Tap targets are at least 44px; primary actions 54px.
+- Icons come from one authored SVG set (`src/ui/icons.tsx`). No emoji.
+
+## Motion
+
+Screen rise on enter, sheet slide-up, breathing orb on the alert screen, gentle pulse on the danger button. All honour `prefers-reduced-motion`.
