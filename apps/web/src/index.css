@@ -1,0 +1,27 @@
+:root {
+  color: #14201a;
+  background: linear-gradient(180deg, #eef5f0 0%, #f7faf8 40%, #ffffff 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+select,
+input {
+  font: inherit;
+  padding: 0.4rem 0.65rem;
+}
+
+button {
+  cursor: pointer;
+}
