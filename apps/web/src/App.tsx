@@ -1,8 +1,8 @@
-import { Harness } from './dev/Harness';
+import { AppRouter } from './app/router';
 
-/** App shell currently hosts only the backend harness. Real UI comes later. */
+/** Neema mother-facing app. Backend harness is unused in the main shell. */
 function App() {
-  return <Harness />;
+  return <AppRouter />;
 }
 
 export default App;
