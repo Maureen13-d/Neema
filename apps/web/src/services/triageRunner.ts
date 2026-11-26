@@ -12,6 +12,7 @@ import {
   type TriageResult,
 } from '@neema/core';
 import { db } from '../storage/db';
+import { activeRedAlert } from './alerts';
 
 export interface RunnerOptions {
   nowMs?: number;
@@ -27,13 +28,17 @@ export interface RunnerOptions {
  * Returns the active unacknowledged RED alert result shape if one exists.
  */
 export async function loadStickyRed(nowMs: number = Date.now()): Promise<TriageResult | null> {
-  const active = await db.alerts.orderBy('tsMs').reverse().first();
-  if (!active || active.level !== 'RED' || active.acknowledgedAtMs !== undefined) return null;
+  const active = await activeRedAlert();
+  if (!active) return null;
   return {
     level: 'RED',
     firedRules: active.firedRules,
-    reasons: ['sticky_red'],
-    messageKey: 'red_go_now',
+    reasons: active.reasons?.length ? [...active.reasons, 'sticky_red'] : ['sticky_red'],
+    messageKey: active.firedRules.includes('R5_HEAVY_BLEEDING')
+      ? 'red_bleeding'
+      : active.firedRules.includes('R9_SOS')
+        ? 'red_sos'
+        : 'red_go_now',
     configVersion: 'sticky',
     evaluatedAtMs: nowMs,
   };

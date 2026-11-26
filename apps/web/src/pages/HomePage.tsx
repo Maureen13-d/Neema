@@ -9,6 +9,7 @@ import { BrandMark } from '../ui/BrandMark';
 import { LangToggle } from '../ui/LangToggle';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { levelLabel } from '../ui/levelLabel';
+import { SosButton } from '../ui/SosButton';
 import {
   IconBand,
   IconBell,
@@ -47,6 +48,7 @@ interface Action {
   onClick?: () => void;
   href?: string;
 }
+
 
 interface Row {
   key: string;
@@ -89,8 +91,11 @@ export function HomePage() {
         : 'Connect your band or add a blood pressure so Neema can begin.');
 
   let action: Action | null = null;
-  if (g.pendingSmsHref && alertActive) {
-    action = { label: t('open_sms'), href: g.pendingSmsHref };
+  const nextSms = g.pendingSms.find((p) => !p.opened);
+  if (nextSms && alertActive) {
+    action = { label: t('open_sms'), href: nextSms.href, onClick: () => g.markSmsOpened(nextSms.contactId) };
+  } else if (level === 'RED' && g.redAcknowledged) {
+    action = { label: lang === 'sw' ? 'Ona hatua' : 'See steps', onClick: () => nav('/alert') };
   } else if (level === 'RED') {
     action = { label: t('call_chp'), onClick: () => nav('/alert') };
   } else if (recheckDue || level === 'YELLOW') {
@@ -208,7 +213,7 @@ export function HomePage() {
 
             {action ? (
               action.href ? (
-                <a className="hero-card__action" href={action.href}>
+                <a className="hero-card__action" href={action.href} onClick={action.onClick}>
                   {action.label}
                   <IconChevron />
                 </a>
@@ -231,6 +236,13 @@ export function HomePage() {
               {lang === 'sw' ? 'Ona hatua zote' : 'See all steps'}
             </button>
           ) : null}
+
+          <SosButton
+            lang={lang}
+            onTrigger={() => {
+              void g.pressSos().then(() => nav('/alert'));
+            }}
+          />
 
           <div className="stat-row">
             <div className="stat-tile" data-tone="heart">

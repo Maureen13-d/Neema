@@ -82,7 +82,7 @@ export async function runAlertChain(
       level: result.level,
       firedRules: result.firedRules,
       motherName: profile?.displayName ?? 'Mama',
-      reasonCode: result.reasons[0] ?? 'alert',
+      reasons: result.reasons,
       ...(locationUrl ? { locationUrl } : {}),
     },
     contacts,

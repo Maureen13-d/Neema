@@ -34,6 +34,8 @@ export interface TriageConfig {
   sleepWindow: { startHour: number; endHour: number };
   tempCalibrationOffsetC: number;
   warningBpSymptoms: SymptomCode[];
+  /** Latest band minute older than this counts as stale (UNKNOWN, never GREEN). */
+  vitalsStaleMinutes: number;
 }
 
 const DEFAULT_CONFIG = triageConfig as TriageConfig;
@@ -78,7 +80,8 @@ export function evaluateTriage(
   const vitalsStaleOrMissing =
     !latest ||
     latest.validFraction < 0.2 ||
-    (latest.hrMean === null && latest.tempMeanC === null);
+    (latest.hrMean === null && latest.tempMeanC === null) ||
+    input.nowMs - latest.tsMs > config.vitalsStaleMinutes * 60_000;
 
   const latestBp = latestReading(input.bp);
   const recentSymptoms = flattenCodes(input.symptoms);
@@ -287,13 +290,30 @@ function raisedBpPersists(bp: BpReading[], latest: BpReading, config: TriageConf
   );
 }
 
-function hasSustainedFever(vitals: VitalsMinute[], config: TriageConfig): boolean {
-  const windowMs = config.feverConfirmMinutes * 60_000;
+/**
+ * True when every valid reading in the confirmation window meets the threshold
+ * and the valid readings span the whole window (first to last ≥ minutes − 1),
+ * so one odd minute never confirms a sustained sign.
+ */
+function sustainedAtOrAbove(
+  vitals: VitalsMinute[],
+  pick: (v: VitalsMinute) => number | null,
+  threshold: number,
+  minutes: number,
+): boolean {
   if (vitals.length === 0) return false;
   const end = vitals[vitals.length - 1]!.tsMs;
-  const inWindow = vitals.filter((v) => v.tsMs >= end - windowMs);
-  if (inWindow.length < 2) return false;
-  return inWindow.every((v) => v.tempMeanC !== null && v.tempMeanC >= config.feverTempC);
+  // One minute of slack so rows at t-10..t (11 rows) and t-9..t (10 rows) both count.
+  const windowStart = end - minutes * 60_000;
+  const valid = vitals.filter((v) => v.tsMs >= windowStart && pick(v) !== null);
+  if (valid.length < 2) return false;
+  const span = valid[valid.length - 1]!.tsMs - valid[0]!.tsMs;
+  if (span < (minutes - 1) * 60_000) return false;
+  return valid.every((v) => (pick(v) as number) >= threshold);
+}
+
+function hasSustainedFever(vitals: VitalsMinute[], config: TriageConfig): boolean {
+  return sustainedAtOrAbove(vitals, (v) => v.tempMeanC, config.feverTempC, config.feverConfirmMinutes);
 }
 
 function hasSustainedFastPulse(
@@ -304,13 +324,11 @@ function hasSustainedFastPulse(
   timeZone?: string,
 ): boolean {
   if (!isRestContext(markedResting, nowMs, config, timeZone)) return false;
-  const windowMs = config.postpartumFastPulseMinutes * 60_000;
-  if (vitals.length === 0) return false;
-  const end = vitals[vitals.length - 1]!.tsMs;
-  const inWindow = vitals.filter((v) => v.tsMs >= end - windowMs);
-  if (inWindow.length === 0) return false;
-  return inWindow.every(
-    (v) => v.hrMean !== null && v.hrMean >= config.postpartumFastPulseBpm,
+  return sustainedAtOrAbove(
+    vitals,
+    (v) => v.hrMean,
+    config.postpartumFastPulseBpm,
+    config.postpartumFastPulseMinutes,
   );
 }
 
@@ -319,7 +337,8 @@ function hasSustainedHighHrForBaseline(vitals: VitalsMinute[], config: TriageCon
   if (vitals.length === 0) return false;
   const end = vitals[vitals.length - 1]!.tsMs;
   const inWindow = vitals.filter((v) => v.tsMs >= end - windowMs && v.hrMean !== null);
-  return inWindow.length >= Math.max(1, Math.floor(config.baselineHrMinutes / 2));
+  if (inWindow.length < Math.max(2, Math.floor(config.baselineHrMinutes / 2))) return false;
+  return inWindow[inWindow.length - 1]!.tsMs - inWindow[0]!.tsMs >= (config.baselineHrMinutes - 1) * 60_000;
 }
 
 /**

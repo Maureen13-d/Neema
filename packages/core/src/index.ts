@@ -73,6 +73,14 @@ export {
 } from './messages/catalog.js';
 
 export {
+  buildAlertSmsText,
+  reasonPhrase,
+  topReason,
+  type AlertSmsDraft,
+  type ReasonPhrase,
+} from './messages/reasons.js';
+
+export {
   HARDWARE_CHECKS,
   HARDWARE_DISCLAIMER,
   finishHardwareValidation,

@@ -1,8 +1,14 @@
 {
   "version": "0.1.0-placeholder",
   "notes": "PLACEHOLDER thresholds pending clinician / CHP supervisor review. Not for clinical use.",
-  "severeBp": { "systolic": 160, "diastolic": 110 },
-  "raisedBp": { "systolic": 140, "diastolic": 90 },
+  "severeBp": {
+    "systolic": 160,
+    "diastolic": 110
+  },
+  "raisedBp": {
+    "systolic": 140,
+    "diastolic": 90
+  },
   "feverTempC": 38.0,
   "feverConfirmMinutes": 10,
   "postpartumFastPulseBpm": 110,
@@ -12,7 +18,15 @@
   "yellowRecheckMinutes": 45,
   "bpRecheckWindowMinutes": 90,
   "reducedMovementMinGestationWeeks": 28,
-  "sleepWindow": { "startHour": 22, "endHour": 5 },
+  "sleepWindow": {
+    "startHour": 22,
+    "endHour": 5
+  },
   "tempCalibrationOffsetC": 0.5,
-  "warningBpSymptoms": ["headache", "blurred_vision", "upper_abdominal_pain"]
+  "warningBpSymptoms": [
+    "headache",
+    "blurred_vision",
+    "upper_abdominal_pain"
+  ],
+  "vitalsStaleMinutes": 5
 }
