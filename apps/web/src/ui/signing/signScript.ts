@@ -1,7 +1,7 @@
 /**
- * CareLoop-style signed conversation script for Neema.
+ * Multi-chapter signed conversations for Neema (CareLoop pattern).
  * Clips are How2Sign research ASL — not KSL, not clinical messaging.
- * Tap answers are local; the guide reply is scripted on-device (offline).
+ * Tap answers are local; guide replies are scripted on-device (offline).
  */
 
 export type SignAnswer = { id: string; labelEn: string; labelSw: string };
@@ -9,26 +9,18 @@ export type SignAnswer = { id: string; labelEn: string; labelSw: string };
 export type GuideReply = {
   textEn: string;
   textSw: string;
-  /** When true, UI stresses facility / SMS. */
   danger: boolean;
-  /** Optional handoff after this answer. */
   handoff?: 'continue' | 'alert_sms' | 'facility' | 'home' | 'end';
 };
 
-/** Ordered How2Sign clip ids available under /signing/asl/packets/. */
-export const SIGN_ORDER = [
-  '--8pSDeC-fg_0-5', // Hi.
-  '1xKU91ggLeI_2-5', // How are you?
-  '--8pSDeC-fg_7-5', // How do you feel about yourself?
-  '06jk1stVwMI_2-5', // Are you comfortable?
-  'CE23zzfUBDw_7-5', // Have you seen any problems with that?
-  'cQBrXCcfDyc_22-5', // Are you ready?
-  'g1HXoDkax5A_20-3', // It's extremely painful.
-  'Cu1rDgWOZ9w_15-8', // See you in the next step.
-  '5dodEz2r56M_16-8', // Take care.
-  '-0N0jbyBW6g_11-5', // Thank you.
-  '-F6vN4bOBWs_16-8', // …goodbye.
-] as const;
+export type SignChapter = {
+  id: string;
+  titleEn: string;
+  titleSw: string;
+  blurbEn: string;
+  blurbSw: string;
+  order: string[];
+};
 
 const okay: SignAnswer = { id: 'better', labelEn: "I'm okay", labelSw: 'Niko sawa' };
 const same: SignAnswer = { id: 'same', labelEn: 'About the same', labelSw: 'Karibu vile vile' };
@@ -40,33 +32,155 @@ const here: SignAnswer = { id: "i'm here", labelEn: "Hi, I'm here", labelSw: 'Ni
 const notYet: SignAnswer = { id: 'not_yet', labelEn: 'Not yet', labelSw: 'Bado' };
 const goodbye: SignAnswer = { id: 'goodbye', labelEn: 'Goodbye', labelSw: 'Kwaheri' };
 const welcome: SignAnswer = { id: "you're welcome", labelEn: "You're welcome", labelSw: 'Karibu' };
+const yes: SignAnswer = { id: 'yes', labelEn: 'Yes', labelSw: 'Ndiyo' };
+const no: SignAnswer = { id: 'no', labelEn: 'No', labelSw: 'Hapana' };
+const tellMore: SignAnswer = { id: 'tell_more', labelEn: 'Tell me more', labelSw: 'Niambie zaidi' };
+const ready: SignAnswer = { id: 'ready', labelEn: "I'm ready", labelSw: 'Niko tayari' };
+const rest: SignAnswer = { id: 'rest', labelEn: 'I need to rest', labelSw: 'Nahitaji kupumzika' };
+const tired: SignAnswer = { id: 'tired', labelEn: "I'm tired", labelSw: 'Nimechoka' };
+
+/** Default order = full night guide (used when no chapter is picked). */
+export const SIGN_ORDER: string[] = [
+  'FzQPg4aqNYc_0-1',
+  '1xKU91ggLeI_2-5',
+  '--8pSDeC-fg_7-5',
+  '06jk1stVwMI_2-5',
+  'CE23zzfUBDw_7-5',
+  'FzUdcaxw_vs_10-2',
+  'g1HXoDkax5A_20-3',
+  'G06Irzcwxiw_19-1',
+  'cQBrXCcfDyc_22-5',
+  'Cu1rDgWOZ9w_15-8',
+  'G06Irzcwxiw_25-1',
+  '5dodEz2r56M_16-8',
+  '-0N0jbyBW6g_11-5',
+  '-F6vN4bOBWs_16-8',
+];
+
+/** Conversation chapters researched from How2Sign short lines + Neema care flow. */
+export const SIGN_CHAPTERS: SignChapter[] = [
+  {
+    id: 'welcome',
+    titleEn: 'Welcome',
+    titleSw: 'Karibu',
+    blurbEn: 'Hello and check-in — how are you tonight?',
+    blurbSw: 'Salamu na ukaguzi — unajisikiaje usiku?',
+    order: [
+      'FzQPg4aqNYc_0-1', // Hi!
+      '--8pSDeC-fg_0-5', // Hi.
+      '1xKU91ggLeI_2-5', // How are you?
+      '--8pSDeC-fg_7-5', // How do you feel about yourself?
+      '06jk1stVwMI_2-5', // Are you comfortable?
+      '5dodEz2r56M_16-8', // Take care.
+    ],
+  },
+  {
+    id: 'feeling',
+    titleEn: 'Feeling / pain',
+    titleSw: 'Hali / maumivu',
+    blurbEn: 'Comfort, problems, and when it hurts.',
+    blurbSw: 'Faraja, matatizo, na maumivu.',
+    order: [
+      '1xKU91ggLeI_2-5',
+      '06jk1stVwMI_2-5',
+      'CE23zzfUBDw_7-5', // Have you seen any problems…
+      'FzUdcaxw_vs_10-2', // Why?
+      'g1HXoDkax5A_20-3', // It's extremely painful.
+      'cQBrXCcfDyc_22-5', // Are you ready?
+      'Cu1rDgWOZ9w_15-8', // See you in the next step.
+    ],
+  },
+  {
+    id: 'encourage',
+    titleEn: 'Encouragement',
+    titleSw: 'Tiari',
+    blurbEn: 'Getting through a hard stretch — soft, not clinical.',
+    blurbSw: 'Kupitia muda mgumu — laini, si kliniki.',
+    order: [
+      'FzQPg4aqNYc_2-1', // We're back.
+      'G06Irzcwxiw_19-1', // To get through all that.
+      'G095RWKQ39g_17-1', // …a little bit strenuous.
+      'G06Irzcwxiw_21-1', // You enjoy the moment…
+      'FzUdcaxw_vs_17-2', // Make it fun.
+      'G06Irzcwxiw_25-1', // You're having a good time…
+      'FzUdcaxw_vs_16-2', // Before you know it…
+      '-0N0jbyBW6g_11-5', // Thank you.
+    ],
+  },
+  {
+    id: 'closing',
+    titleEn: 'Closing',
+    titleSw: 'Kufunga',
+    blurbEn: 'Ready, next step, thank you, goodbye.',
+    blurbSw: 'Tayari, hatua ijayo, asante, kwaheri.',
+    order: [
+      'cQBrXCcfDyc_22-5',
+      'Cu1rDgWOZ9w_15-8',
+      '5dodEz2r56M_16-8',
+      '-0N0jbyBW6g_11-5',
+      '-F6vN4bOBWs_16-8', // Dr. Felicia here, goodbye.
+    ],
+  },
+  {
+    id: 'full_night',
+    titleEn: 'Full night guide',
+    titleSw: 'Mwongozo wa usiku',
+    blurbEn: 'Longer path: welcome → feelings → next steps.',
+    blurbSw: 'Njia ndefu: karibu → hisia → hatua.',
+    order: [
+      'FzQPg4aqNYc_0-1',
+      '1xKU91ggLeI_2-5',
+      '--8pSDeC-fg_7-5',
+      '06jk1stVwMI_2-5',
+      'CE23zzfUBDw_7-5',
+      'FzUdcaxw_vs_10-2',
+      'g1HXoDkax5A_20-3',
+      'G06Irzcwxiw_19-1',
+      'cQBrXCcfDyc_22-5',
+      'Cu1rDgWOZ9w_15-8',
+      'G06Irzcwxiw_25-1',
+      '5dodEz2r56M_16-8',
+      '-0N0jbyBW6g_11-5',
+      '-F6vN4bOBWs_16-8',
+    ],
+  },
+];
 
 /** Tap choices for each signed line (clip id). */
 export const SIGN_REPLIES: Record<string, SignAnswer[]> = {
+  'FzQPg4aqNYc_0-1': [hello, here],
   '--8pSDeC-fg_0-5': [hello, here],
-  '1xKU91ggLeI_2-5': [okay, same, pain],
-  '--8pSDeC-fg_7-5': [okay, help, pain],
-  '06jk1stVwMI_2-5': [okay, pain, help],
-  'CE23zzfUBDw_7-5': [okay, pain, help],
-  'cQBrXCcfDyc_22-5': [okay, notYet, help],
+  '--8pSDeC-fg_1-5': [hello, thanks],
+  '1xKU91ggLeI_2-5': [okay, same, pain, tired],
+  '--8pSDeC-fg_7-5': [okay, help, pain, rest],
+  '06jk1stVwMI_2-5': [okay, pain, help, rest],
+  'CE23zzfUBDw_7-5': [yes, no, tellMore, help],
+  'FzUdcaxw_vs_10-2': [pain, help, tired, okay],
   'g1HXoDkax5A_20-3': [help, pain, okay],
-  'Cu1rDgWOZ9w_15-8': [thanks, help],
+  'cQBrXCcfDyc_22-5': [ready, notYet, help],
+  'Cu1rDgWOZ9w_15-8': [thanks, help, ready],
   '5dodEz2r56M_16-8': [thanks, goodbye],
   '-0N0jbyBW6g_11-5': [welcome, thanks],
   '-F6vN4bOBWs_16-8': [goodbye, thanks],
+  'FzQPg4aqNYc_2-1': [hello, thanks, tellMore],
+  'G06Irzcwxiw_19-1': [tired, okay, help, rest],
+  'G095RWKQ39g_17-1': [tired, rest, okay, help],
+  'G06Irzcwxiw_21-1': [thanks, okay, tellMore],
+  'FzUdcaxw_vs_17-2': [thanks, okay, ready],
+  'G06Irzcwxiw_25-1': [thanks, okay, goodbye],
+  'FzUdcaxw_vs_16-2': [thanks, okay, ready],
 };
 
-/** Guide text after a tap — never invents clinical advice beyond “get to care”. */
 export const GUIDE_BY_ANSWER: Record<string, GuideReply> = {
   hello: {
-    textEn: 'Hello mama. I am a guide, not a doctor. We will go one line at a time.',
-    textSw: 'Habari mama. Mimi ni mwongozo, si daktari. Tutakwenda mstari mmoja baada ya mwingine.',
+    textEn: 'Hello mama. I am a guide on this phone — not a doctor. We go one signed line at a time.',
+    textSw: 'Habari mama. Mimi ni mwongozo kwenye simu — si daktari. Tunakwenda mstari mmoja wa ishara.',
     danger: false,
     handoff: 'continue',
   },
   "i'm here": {
-    textEn: 'I am with you. Tap an answer under the signing figure.',
-    textSw: 'Niko nawe. Gusa jibu chini ya mtu anayefanya ishara.',
+    textEn: 'I am with you. Tap an answer under the signing figure. The camera stays off.',
+    textSw: 'Niko nawe. Gusa jibu chini ya mtu anayefanya ishara. Kamera inazimwa.',
     danger: false,
     handoff: 'continue',
   },
@@ -84,7 +198,7 @@ export const GUIDE_BY_ANSWER: Record<string, GuideReply> = {
   },
   worse: {
     textEn: 'Do not wait. Open the message to your CHP and go to a health facility now.',
-    textSw: 'Usisubiri. Fungua ujumbe kwa CHP yako na uende kituo cha afya sasa.',
+    textSw: 'Uisubiri. Fungua ujumbe kwa CHP yako na uende kituo cha afya sasa.',
     danger: true,
     handoff: 'facility',
   },
@@ -118,10 +232,46 @@ export const GUIDE_BY_ANSWER: Record<string, GuideReply> = {
     danger: false,
     handoff: 'end',
   },
+  yes: {
+    textEn: 'Thank you for telling me. If it is getting worse, ask for help now.',
+    textSw: 'Asante kwa kuniambia. Ikiwa inazidi, omba msaada sasa.',
+    danger: false,
+    handoff: 'continue',
+  },
+  no: {
+    textEn: 'Alright. We will keep going gently. Tap if something changes.',
+    textSw: 'Sawa. Tutaendelea kwa upole. Gusa kitu kikibadilika.',
+    danger: false,
+    handoff: 'continue',
+  },
+  tell_more: {
+    textEn: 'I will keep signing. You can also open How do you feel? on Home for symptoms.',
+    textSw: 'Nitaendelea kufanya ishara. Unaweza pia kufungua Unajisikiaje? nyumbani.',
+    danger: false,
+    handoff: 'continue',
+  },
+  ready: {
+    textEn: 'Good. Follow Neema’s next step — SMS, blood pressure, or the facility if she asks.',
+    textSw: 'Vizuri. Fuata hatua ya Neema — SMS, shinikizo, au kituo akikuomba.',
+    danger: false,
+    handoff: 'continue',
+  },
+  rest: {
+    textEn: 'Rest if you can. Keep the phone near. Call for help if pain or bleeding gets worse.',
+    textSw: 'Pumzika unapoweza. Weka simu karibu. Omba msaada maumivu au damu ikiongezeka.',
+    danger: false,
+    handoff: 'continue',
+  },
+  tired: {
+    textEn: 'Being tired is hard. Soft rest is okay — but sudden worse pain means seek care.',
+    textSw: 'Kuchoka ni ngumu. Kupumzika sawa — lakini maumivu ya ghafla yanahitaji msaada.',
+    danger: false,
+    handoff: 'continue',
+  },
 };
 
 export function answersForClip(clipId: string): SignAnswer[] {
-  return SIGN_REPLIES[clipId] ?? [okay, help];
+  return SIGN_REPLIES[clipId] ?? [okay, help, thanks];
 }
 
 export function guideForAnswer(answerId: string): GuideReply {
@@ -133,4 +283,8 @@ export function guideForAnswer(answerId: string): GuideReply {
       handoff: 'continue',
     }
   );
+}
+
+export function chapterById(id: string): SignChapter {
+  return SIGN_CHAPTERS.find((c) => c.id === id) ?? SIGN_CHAPTERS[0]!;
 }

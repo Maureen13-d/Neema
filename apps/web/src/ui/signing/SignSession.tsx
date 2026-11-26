@@ -7,11 +7,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { AslPlayer, type SignedLine } from './AslPlayer';
 import { ASL_CITATION, ASL_LABEL } from './aslLibrary';
 import {
-  SIGN_ORDER,
+  SIGN_CHAPTERS,
   answersForClip,
+  chapterById,
   guideForAnswer,
   type GuideReply,
   type SignAnswer,
+  type SignChapter,
 } from './signScript';
 
 function prefersReducedMotion() {
@@ -20,7 +22,7 @@ function prefersReducedMotion() {
 
 export type SignHandoff = NonNullable<GuideReply['handoff']>;
 
-/** Full-screen signed conversation. */
+/** Full-screen signed conversation with chapter picker. */
 export function SignSession({
   lang = 'en',
   onLeave,
@@ -31,6 +33,7 @@ export function SignSession({
   /** Called when a tap asks for SMS / facility / home / end. */
   onHandoff?: (kind: SignHandoff) => void;
 }) {
+  const [chapter, setChapter] = useState<SignChapter | null>(null);
   const [step, setStep] = useState(0);
   const [reply, setReply] = useState<GuideReply | null>(null);
   const [line, setLine] = useState<SignedLine | null>(null);
@@ -40,12 +43,28 @@ export function SignSession({
   const [replay, setReplay] = useState(0);
   const [done, setDone] = useState(false);
 
-  const clipId = SIGN_ORDER[Math.min(step, SIGN_ORDER.length - 1)]!;
-  const answers: SignAnswer[] = useMemo(() => answersForClip(clipId), [clipId]);
-  const total = SIGN_ORDER.length;
+  const order = chapter?.order ?? [];
+  const clipId = order[Math.min(step, Math.max(order.length - 1, 0))] ?? '';
+  const answers: SignAnswer[] = useMemo(
+    () => (clipId ? answersForClip(clipId) : []),
+    [clipId],
+  );
+  const total = order.length;
 
   const showLine = useCallback((next: SignedLine | null) => setLine(next), []);
   const showProblem = useCallback((message: string) => setProblem(message), []);
+
+  function startChapter(id: string) {
+    const next = chapterById(id);
+    setChapter(next);
+    setStep(0);
+    setReply(null);
+    setLine(null);
+    setProblem('');
+    setDone(false);
+    setReplay((n) => n + 1);
+    setPaused(prefersReducedMotion());
+  }
 
   function onAnswer(id: string) {
     const guide = guideForAnswer(id);
@@ -59,12 +78,67 @@ export function SignSession({
     }
     if (handoff === 'alert_sms' || handoff === 'facility') {
       onHandoff?.(handoff);
-      // Still advance so she can keep tapping if she stays on this screen.
     }
 
-    setStep((s) => Math.min(s + 1, total - 1));
+    setStep((s) => {
+      if (s >= total - 1) {
+        setDone(true);
+        return s;
+      }
+      return s + 1;
+    });
     setReplay((n) => n + 1);
     setPaused(false);
+  }
+
+  if (!chapter) {
+    return (
+      <main className="screen sign-session">
+        <header className="sign-session__top">
+          <strong>{lang === 'sw' ? 'Mazungumzo ya ishara' : 'Sign conversation'}</strong>
+          <button type="button" className="btn btn-ghost" onClick={onLeave}>
+            {lang === 'sw' ? 'Tumia maandishi' : 'Use text instead'}
+          </button>
+        </header>
+        <p className="soft-note" style={{ marginTop: '0.75rem' }}>
+          {lang === 'sw'
+            ? 'Chagua mazungumzo. Klipu ni utafiti wa ASL (How2Sign) — si KSL, si ujumbe wa kliniki.'
+            : 'Pick a conversation. Clips are How2Sign research ASL — not KSL, not clinical messaging.'}
+        </p>
+        <section className="sign-session__chapters" aria-labelledby="sign-chapter-heading">
+          <h2 id="sign-chapter-heading" className="section-title">
+            {lang === 'sw' ? 'Anza hapa' : 'Start here'}
+          </h2>
+          <div className="sign-session__chapter-list">
+            {SIGN_CHAPTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="btn btn-primary sign-session__chapter"
+                onClick={() => startChapter(item.id)}
+              >
+                <span className="sign-session__chapter-title">
+                  {lang === 'sw' ? item.titleSw : item.titleEn}
+                </span>
+                <span className="sign-session__chapter-blurb">
+                  {lang === 'sw' ? item.blurbSw : item.blurbEn}
+                </span>
+                <span className="soft-note">
+                  {lang === 'sw'
+                    ? `${item.order.length} mistari`
+                    : `${item.order.length} lines`}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <details className="sign-session__about">
+          <summary>{lang === 'sw' ? 'Kuhusu klipu hizi' : 'About these clips'}</summary>
+          <p className="soft-note">{ASL_LABEL}</p>
+          <p className="soft-note">{ASL_CITATION}</p>
+        </details>
+      </main>
+    );
   }
 
   if (problem) {
@@ -80,6 +154,14 @@ export function SignSession({
           <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} onClick={onLeave}>
             {lang === 'sw' ? 'Endelea bila ishara' : 'Continue without signing'}
           </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ width: '100%', marginTop: '0.5rem' }}
+            onClick={() => setChapter(null)}
+          >
+            {lang === 'sw' ? 'Chagua mazungumzo mengine' : 'Pick another conversation'}
+          </button>
         </div>
       </main>
     );
@@ -88,9 +170,9 @@ export function SignSession({
   return (
     <main className="screen sign-session">
       <header className="sign-session__top">
-        <strong>{lang === 'sw' ? 'Mazungumzo ya ishara' : 'Sign conversation'}</strong>
-        <button type="button" className="btn btn-ghost" onClick={onLeave}>
-          {lang === 'sw' ? 'Tumia maandishi' : 'Use text instead'}
+        <strong>{lang === 'sw' ? chapter.titleSw : chapter.titleEn}</strong>
+        <button type="button" className="btn btn-ghost" onClick={() => setChapter(null)}>
+          {lang === 'sw' ? 'Badilisha' : 'Change'}
         </button>
       </header>
 
@@ -175,9 +257,12 @@ export function SignSession({
           </p>
         </section>
       ) : (
-        <div className="btn-row" style={{ marginTop: '1rem' }}>
+        <div className="btn-row" style={{ marginTop: '1rem', flexDirection: 'column', gap: '0.5rem' }}>
           <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={onLeave}>
             {lang === 'sw' ? 'Maliza' : 'Done'}
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ width: '100%' }} onClick={() => setChapter(null)}>
+            {lang === 'sw' ? 'Mazungumzo mengine' : 'Another conversation'}
           </button>
         </div>
       )}
