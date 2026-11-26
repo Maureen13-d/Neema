@@ -70,12 +70,13 @@ describe('triage time windows', () => {
     expect(result.firedRules).not.toContain('R7_FEVER_FAST_PULSE_POSTPARTUM');
   });
 
-  it('needs 10 minutes of high pulse before the baseline rule fires (R8)', () => {
-    const short = evaluateTriage(input({ baselineZ: { hr: 3.1, temp: null }, vitals: minutes(3, 104, 36.6) }));
-    expect(short.firedRules).not.toContain('R8_PULSE_ABOVE_BASELINE');
-    const long = evaluateTriage(input({ baselineZ: { hr: 3.1, temp: null }, vitals: minutes(10, 104, 36.6) }));
-    expect(long.firedRules).toContain('R8_PULSE_ABOVE_BASELINE');
-    expect(long.level).toBe('YELLOW');
+  it('fires R8 from resting baseline z without a sustained-minute gate (brief)', () => {
+    // Brief §7.2: R8 is resting HR z ≥ 2. Sustained-window logic was removed with the nested config.
+    const result = evaluateTriage(
+      input({ baselineZ: { hr: 3.1, temp: null }, vitals: minutes(3, 104, 36.6) }),
+    );
+    expect(result.firedRules).toContain('R8_PULSE_ABOVE_BASELINE');
+    expect(result.level).toBe('YELLOW');
   });
 
   it('keeps a raised-BP YELLOW even when band data is stale', () => {
