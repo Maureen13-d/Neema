@@ -1,4 +1,4 @@
-# Builds the Neema web app and serves the static files with nginx.
+# Builds the Neema web app and serves static files + Msingi TTS proxy.
 # Build context is the repo root, because the web app imports packages/core.
 
 FROM node:24-slim AS build
@@ -15,7 +15,11 @@ COPY packages/core packages/core
 COPY apps/web apps/web
 RUN pnpm --filter @neema/web build
 
-FROM nginx:stable-alpine
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
+FROM node:24-slim
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8080
+COPY --from=build /repo/apps/web/dist ./dist
+COPY apps/web/server.mjs ./server.mjs
 EXPOSE 8080
+CMD ["node", "server.mjs"]

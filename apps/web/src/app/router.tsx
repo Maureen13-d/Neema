@@ -18,6 +18,7 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { ChasePage } from '../pages/ChasePage';
 import { CheckInPage } from '../pages/CheckInPage';
 import { EpdsPage } from '../pages/EpdsPage';
+import { SignOffPage } from '../pages/SignOffPage';
 import { LocaleProvider } from '../hooks/useLocale';
 
 /** Mother-facing routes. No marketing landing — entry routes into care. */
@@ -125,6 +126,14 @@ export function AppRouter() {
               element={
                 <RequireAuth>
                   <EpdsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/sign-off"
+              element={
+                <RequireAuth>
+                  <SignOffPage />
                 </RequireAuth>
               }
             />

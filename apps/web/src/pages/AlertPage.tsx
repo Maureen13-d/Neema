@@ -7,7 +7,7 @@ import { SigningSlot } from '../ui/SigningSlot';
 import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
-import { getMessageTextFor } from '../services/speech';
+import { getMessageTextFor, speakMessageKey } from '../services/speech';
 import { reasonPhrase, topReason } from '@neema/core';
 
 /** Guided alert ritual — breathe → message → wait. */
@@ -100,6 +100,16 @@ export function AlertPage() {
       ) : null}
 
       {g.triage ? <SigningSlot messageKey={g.triage.messageKey} lang={lang} /> : null}
+
+      {g.triage ? (
+        <Button
+          variant="secondary"
+          style={{ width: '100%', marginBottom: '0.75rem' }}
+          onClick={() => void speakMessageKey(g.triage!.messageKey, { lang: lang === 'sw' ? 'sw-KE' : 'en-KE' })}
+        >
+          {lang === 'sw' ? 'Sikiliza ujumbe' : 'Hear message'}
+        </Button>
+      ) : null}
 
       <ol className="ritual-steps">
         <li>

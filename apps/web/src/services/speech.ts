@@ -1,17 +1,20 @@
 /**
  * Speech output for triage messages.
- * Uses browser speechSynthesis with a Swahili voice when installed,
- * falling back to a provided audio URL map (pre-recorded).
+ * Prefer Msingi Sauti (CareLoop voice path) via /api/tts, then browser speechSynthesis,
+ * then optional pre-recorded audioFallback URLs.
  */
 
 import { getMessageCatalog } from '@neema/core';
 import swMessages from '../../../../packages/core/src/messages/sw.json';
+import { playMsingiAudio } from './msingi';
 
 export type SpeakOptions = {
-  /** BCP-47 tag; default sw-KE. */
+  /** BCP-47 tag; default sw-KE for synthesis fallback. */
   lang?: string;
-  /** Optional map of messageKey -> audio URL for fallback. */
+  /** Optional map of messageKey -> audio URL for offline fallback. */
   audioFallback?: Record<string, string>;
+  /** Skip Msingi and use browser synthesis only. */
+  browserOnly?: boolean;
 };
 
 function lookupMessage(messageKey: string): string | undefined {
@@ -20,27 +23,43 @@ function lookupMessage(messageKey: string): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+function speakBrowser(text: string, lang: string): boolean {
+  if (!('speechSynthesis' in window)) return false;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = lang;
+  const voices = window.speechSynthesis.getVoices();
+  const want = lang.toLowerCase().slice(0, 2);
+  const match =
+    voices.find((v) => v.lang.toLowerCase().startsWith(want)) ??
+    voices.find((v) => v.lang.toLowerCase().startsWith('sw')) ??
+    null;
+  if (match) utter.voice = match;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+  return true;
+}
+
 /**
  * Speaks a message key from sw.json.
- * Returns 'spoken' | 'audio' | 'text-only' so the harness can show fallbacks.
+ * Returns 'msingi' | 'spoken' | 'audio' | 'text-only' so the UI can show fallbacks.
  */
 export async function speakMessageKey(
   messageKey: string,
   options: SpeakOptions = {},
-): Promise<'spoken' | 'audio' | 'text-only'> {
+): Promise<'msingi' | 'spoken' | 'audio' | 'text-only'> {
   const text = lookupMessage(messageKey);
   if (!text || messageKey.startsWith('_')) return 'text-only';
 
-  if ('speechSynthesis' in window) {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = options.lang ?? 'sw-KE';
-    const voices = window.speechSynthesis.getVoices();
-    const sw = voices.find((v) => v.lang.toLowerCase().startsWith('sw'));
-    if (sw) utter.voice = sw;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
-    return 'spoken';
+  if (!options.browserOnly) {
+    try {
+      const ok = await playMsingiAudio(text);
+      if (ok) return 'msingi';
+    } catch {
+      // fall through to browser / audio
+    }
   }
+
+  if (speakBrowser(text, options.lang ?? 'sw-KE')) return 'spoken';
 
   const url = options.audioFallback?.[messageKey];
   if (url) {
@@ -49,6 +68,24 @@ export async function speakMessageKey(
     return 'audio';
   }
 
+  return 'text-only';
+}
+
+/** Speaks arbitrary approved text (same cascade as message keys). */
+export async function speakText(
+  text: string,
+  options: SpeakOptions = {},
+): Promise<'msingi' | 'spoken' | 'text-only'> {
+  const trimmed = text.trim();
+  if (!trimmed) return 'text-only';
+  if (!options.browserOnly) {
+    try {
+      if (await playMsingiAudio(trimmed)) return 'msingi';
+    } catch {
+      /* fall through */
+    }
+  }
+  if (speakBrowser(trimmed, options.lang ?? 'sw-KE')) return 'spoken';
   return 'text-only';
 }
 
