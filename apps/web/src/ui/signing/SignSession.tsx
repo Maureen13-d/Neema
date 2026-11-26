@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { AslPlayer, type SignedLine } from './AslPlayer';
+import { ASL_PLAYBACK_RATE, AslPlayer, type SignedLine } from './AslPlayer';
 import { ASL_CITATION, ASL_LABEL } from './aslLibrary';
 import {
   SIGN_CHAPTERS,
@@ -39,7 +39,8 @@ export function SignSession({
   const [line, setLine] = useState<SignedLine | null>(null);
   const [problem, setProblem] = useState('');
   const [paused, setPaused] = useState(prefersReducedMotion);
-  const [slow, setSlow] = useState(false);
+  /** Start slow — raw mocap is hard to read; "Slower" goes even gentler. */
+  const [slow, setSlow] = useState(true);
   const [replay, setReplay] = useState(0);
   const [done, setDone] = useState(false);
 
@@ -183,9 +184,10 @@ export function SignSession({
         <AslPlayer
           clipId={clipId}
           tall
+          passport
           showCaption={false}
           paused={paused}
-          speed={slow ? 0.75 : 1}
+          speed={slow ? ASL_PLAYBACK_RATE * 0.65 : ASL_PLAYBACK_RATE}
           replay={replay}
           onLine={showLine}
           onProblem={showProblem}

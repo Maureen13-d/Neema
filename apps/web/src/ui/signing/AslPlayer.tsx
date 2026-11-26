@@ -29,23 +29,30 @@ export type SignedLine = {
   citation: string;
 };
 
+/** Readable default: How2Sign mocap is too fast for learners; ~0.4× feels human. */
+export const ASL_PLAYBACK_RATE = 0.4;
+
 /** Plays one How2Sign clip by id from the static packets folder. */
 export function AslPlayer({
   clipId,
   paused = false,
-  speed = 1,
+  speed = ASL_PLAYBACK_RATE,
   replay = 0,
   tall = false,
+  passport = false,
   showCaption = true,
   onLine,
   onProblem,
 }: {
   clipId: string;
   paused?: boolean;
+  /** Multiplier on clip fps (1 = raw mocap; prefer ~0.4). */
   speed?: number;
   /** Bump to restart from frame 0. */
   replay?: number;
   tall?: boolean;
+  /** Passport-card framing (chest-up portrait). */
+  passport?: boolean;
   showCaption?: boolean;
   onLine?: (line: SignedLine | null) => void;
   onProblem?: (message: string) => void;
@@ -120,8 +127,16 @@ export function AslPlayer({
     return () => cancelAnimationFrame(handle);
   }, [clip, paused, speed, replay]);
 
+  const shell = [
+    'asl-player',
+    tall ? 'asl-player--tall' : '',
+    passport ? 'asl-player--passport' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={tall ? 'asl-player asl-player--tall' : 'asl-player'}>
+    <div className={shell}>
       <canvas
         ref={canvas}
         role="img"

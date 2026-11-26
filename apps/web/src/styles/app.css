@@ -1455,7 +1455,7 @@ input[type='checkbox'] {
   width: 100%;
   height: 180px;
   border-radius: 0.9rem;
-  background: #ebe8fb;
+  background: #152038;
 }
 .asl-player__caption {
   margin: 0.4rem 0 0;
@@ -1467,12 +1467,32 @@ input[type='checkbox'] {
   place-items: center;
   padding: 1rem;
   text-align: center;
-  color: var(--ink-muted);
+  color: #d7deea;
   font-size: 0.9rem;
 }
 .asl-player--tall .asl-player__canvas {
   height: min(46dvh, 320px);
   min-height: 200px;
+}
+/* Passport-card portrait: chest-up signing figure */
+.asl-player--passport {
+  margin-inline: auto;
+  width: min(100%, 22rem);
+}
+.asl-player--passport .asl-player__canvas {
+  aspect-ratio: 3 / 4;
+  height: auto;
+  min-height: 240px;
+  max-height: min(52dvh, 380px);
+  border-radius: 1rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #0a1220 70%, transparent),
+    0 12px 28px rgba(15, 22, 40, 0.28);
+  background: #152038;
+}
+.asl-player--tall.asl-player--passport .asl-player__canvas {
+  height: auto;
+  min-height: 260px;
 }
 
 /* CareLoop-style signed conversation */
@@ -1490,6 +1510,9 @@ input[type='checkbox'] {
 }
 .sign-session__stage {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   border-radius: 1.1rem;
   background: var(--glass-strong);
   border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
