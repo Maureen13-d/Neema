@@ -10,6 +10,7 @@ import { listContacts, saveContact } from './contacts';
 import { startEscalation, type EscalationHandle } from './escalation';
 import { LocationError, requestAlertLocation } from './location';
 import { speakMessageKey } from './speech';
+import { ensureFollowUp } from './followUp';
 import { loadProfile } from './passport';
 
 export interface AlertChainResult {
@@ -91,6 +92,9 @@ export async function runAlertChain(
 
   const escalation =
     result.level === 'RED' ? startEscalation(alert.id, contacts) : null;
+
+  // Open a CareLoop-style chase loop for every YELLOW/RED alert.
+  await ensureFollowUp(alert.id);
 
   return {
     alertId: alert.id,

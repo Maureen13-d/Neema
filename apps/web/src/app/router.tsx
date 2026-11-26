@@ -15,6 +15,7 @@ import { PassportPage } from '../pages/PassportPage';
 import { SummaryPage } from '../pages/SummaryPage';
 import { ContactsPage } from '../pages/ContactsPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { ChasePage } from '../pages/ChasePage';
 import { LocaleProvider } from '../hooks/useLocale';
 
 /** Mother-facing routes. No marketing landing — entry routes into care. */
@@ -98,6 +99,14 @@ export function AppRouter() {
               element={
                 <RequireAuth>
                   <SettingsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/chase"
+              element={
+                <RequireAuth>
+                  <ChasePage />
                 </RequireAuth>
               }
             />

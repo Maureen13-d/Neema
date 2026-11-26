@@ -1,32 +1,35 @@
 {
-  "version": "0.1.0-placeholder",
-  "notes": "PLACEHOLDER thresholds pending clinician / CHP supervisor review. Not for clinical use.",
-  "severeBp": {
-    "systolic": 160,
-    "diastolic": 110
+  "version": "0.2.0-placeholder",
+  "notes": "PLACEHOLDER thresholds from the Nov 2025 Cursor build brief. Pending clinician / CHP supervisor review. Not for clinical use.",
+  "bp": {
+    "severeSys": 160,
+    "severeDia": 110,
+    "raisedSys": 140,
+    "raisedDia": 90,
+    "persistMinutes": 15
   },
-  "raisedBp": {
-    "systolic": 140,
-    "diastolic": 90
+  "fever": {
+    "tempC": 38.0,
+    "windowMinutes": 10
   },
-  "feverTempC": 38.0,
-  "feverConfirmMinutes": 10,
-  "postpartumFastPulseBpm": 110,
-  "postpartumFastPulseMinutes": 10,
-  "baselineHrZThreshold": 2.5,
-  "baselineHrMinutes": 10,
-  "yellowRecheckMinutes": 45,
-  "bpRecheckWindowMinutes": 90,
-  "reducedMovementMinGestationWeeks": 28,
+  "pulse": {
+    "postpartumFastBpm": 100,
+    "baselineZ": 2.0
+  },
+  "shockIndex": {
+    "referral": 0.9,
+    "maxBpAgeMinutes": 30
+  },
+  "signal": {
+    "minValidFraction": 0.5,
+    "staleMinutes": 15
+  },
+  "recheckMinutes": 15,
   "sleepWindow": {
     "startHour": 22,
     "endHour": 5
   },
   "tempCalibrationOffsetC": 0.5,
-  "warningBpSymptoms": [
-    "headache",
-    "blurred_vision",
-    "upper_abdominal_pain"
-  ],
-  "vitalsStaleMinutes": 5
+  "warningBpSymptoms": ["headache", "blurred_vision", "upper_abdominal_pain"],
+  "reducedMovementMinGestationWeeks": 28
 }

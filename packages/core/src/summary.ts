@@ -1,5 +1,6 @@
 /**
- * Builds a one-page nurse summary payload for QR / on-screen handover.
+ * Builds a one-page nurse summary payload for QR / on-screen handover,
+ * and collapses per-second samples into a VitalsMinute.
  * Decision support only — no diagnosis wording.
  */
 
@@ -10,7 +11,32 @@ import type {
   SymptomReport,
   TriageLevel,
   VitalsMinute,
+  VitalsSample,
 } from './types.js';
+
+/**
+ * Collapse ~60 one-second samples into one stored minute.
+ * Calibration offset is applied here once; raw per-second samples are never persisted.
+ */
+export function summariseMinute(
+  samples: VitalsSample[],
+  startMs: number,
+  tempOffsetC: number,
+): VitalsMinute {
+  const hrs = samples.map((s) => s.heartRate).filter((h): h is number => h !== null);
+  const temps = samples.map((s) => s.skinTempC).filter((t): t is number => t !== null);
+  const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  return {
+    tsMs: startMs,
+    hrMean: mean(hrs),
+    hrMin: hrs.length ? Math.min(...hrs) : null,
+    hrMax: hrs.length ? Math.max(...hrs) : null,
+    tempMeanC: temps.length ? mean(temps)! + tempOffsetC : null,
+    validFraction: samples.length
+      ? Math.max(hrs.length, temps.length) / samples.length
+      : 0,
+  };
+}
 
 /** Fields the mother can choose to share at a visit. */
 export interface SummaryShareChoices {

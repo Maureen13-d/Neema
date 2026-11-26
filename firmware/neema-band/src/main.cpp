@@ -1,8 +1,8 @@
 /**
  * Neema band firmware.
  * Reads MAX30102 heart rate + DS18B20 skin temperature, notifies over BLE
- * once per second using the @neema/core packet layout. Demo scenarios replace
- * sensors when the phone sends a demo command or DEMO_SCENARIO is non-zero.
+ * once per second using the @neema/core 12-byte packet layout. Demo scenarios
+ * replace sensors when the phone sends a demo command or DEMO_SCENARIO is non-zero.
  */
 
 #include <Arduino.h>
@@ -25,25 +25,23 @@ static uint16_t seq = 0;
 static uint8_t demoScenario = 0; // 0 = real sensors
 static bool sensorsOk = false;
 static unsigned long sosPressStarted = 0;
-static bool sosActive = false;
+static unsigned long sosUntilMs = 0;
 static uint8_t ledMode = 0; // 0 off, 1 green, 2 yellow, 3 red
 
 class CommandCallbacks : public NimBLECharacteristicCallbacks {
   void onWrite(NimBLECharacteristic *pCharacteristic) override {
     std::string value = pCharacteristic->getValue();
     if (value.size() < NEEMA_CMD_LEN) return;
-    if ((uint8_t)value[0] != NEEMA_MAGIC) return;
-    uint8_t kind = (uint8_t)value[1];
-    uint8_t arg = (uint8_t)value[2];
-    if (kind == 1 && arg <= 3) {
+    uint8_t id = (uint8_t)value[0];
+    uint8_t arg = (uint8_t)value[1];
+    if (id == 0x01 && arg <= 3) {
       ledMode = arg;
-    } else if (kind == 2) {
-      // vibrate patterns — short / long / sos
+    } else if (id == 0x02) {
       unsigned long ms = arg == 2 ? 400 : (arg == 3 ? 800 : 120);
       digitalWrite(PIN_VIBRATION, HIGH);
       delay(ms);
       digitalWrite(PIN_VIBRATION, LOW);
-    } else if (kind == 3 && arg <= 3) {
+    } else if (id == 0x03 && arg <= 3) {
       demoScenario = arg;
     }
   }
@@ -55,22 +53,31 @@ static void applyLed() {
   digitalWrite(PIN_LED_RED, ledMode == 3 ? HIGH : LOW);
 }
 
+static bool sosActive() {
+  return millis() < sosUntilMs;
+}
+
 static void readSos() {
   bool pressed = digitalRead(PIN_SOS_BUTTON) == LOW;
   if (pressed) {
     if (sosPressStarted == 0) sosPressStarted = millis();
-    if (millis() - sosPressStarted >= SOS_LONG_PRESS_MS) sosActive = true;
+    if (millis() - sosPressStarted >= SOS_LONG_PRESS_MS) {
+      sosUntilMs = millis() + SOS_HOLD_MS;
+      // Brief SOS vibration on latch.
+      digitalWrite(PIN_VIBRATION, HIGH);
+      delay(800);
+      digitalWrite(PIN_VIBRATION, LOW);
+      sosPressStarted = 0;
+    }
   } else {
     sosPressStarted = 0;
-    // SOS flag clears when button released; phone/alert layer owns stickiness.
-    sosActive = false;
   }
 }
 
 static bool readHeartRate(float &bpmOut) {
   if (!sensorsOk) return false;
   long ir = particleSensor.getIR();
-  if (ir < 50000) return false; // no skin contact
+  if (ir < 50000) return false;
   if (checkForBeat(ir)) {
     static unsigned long lastBeat = 0;
     unsigned long now = millis();
@@ -96,18 +103,17 @@ static bool readTempC(float &tempOut) {
 }
 
 static void demoValues(float &hr, bool &hrOk, float &tempC, bool &tempOk) {
-  // Scripted scenarios for stage demos when sensors are noisy.
   unsigned long t = millis() / 1000;
   switch (demoScenario) {
-    case 1: // normal night
+    case 1:
       hr = 72 + (t % 5);
       tempC = 36.5f + ((t % 3) * 0.05f);
       break;
-    case 2: // warning drift
+    case 2:
       hr = 88 + (t % 6);
       tempC = 37.2f + ((t % 4) * 0.05f);
       break;
-    case 3: // fever + fast pulse
+    case 3:
       hr = 116 + (t % 5);
       tempC = 38.3f + ((t % 3) * 0.05f);
       break;
@@ -134,28 +140,30 @@ static void buildAndNotify() {
   }
 
   uint8_t packet[NEEMA_PACKET_LEN] = {0};
-  packet[0] = NEEMA_MAGIC;
-  packet[1] = NEEMA_VERSION;
-  packet[2] = seq & 0xff;
-  packet[3] = (seq >> 8) & 0xff;
-  seq++;
+  packet[0] = NEEMA_VERSION;
 
   uint8_t flags = 0;
-  if (sosActive) flags |= FLAG_SOS;
+  if (hrOk) flags |= FLAG_HR_VALID;
+  if (tempOk) flags |= FLAG_TEMP_VALID;
+  if (sosActive()) flags |= FLAG_SOS;
   if (demoScenario > 0) flags |= FLAG_DEMO;
-  if (hrOk) {
-    flags |= FLAG_HR_VALID;
-    packet[5] = (uint8_t)constrain((int)(hr + 0.5f), 0, 255);
-  }
-  if (tempOk) {
-    flags |= FLAG_TEMP_VALID;
-    int16_t centi = (int16_t)(tempC * 100.0f);
-    packet[6] = centi & 0xff;
-    packet[7] = (centi >> 8) & 0xff;
-  }
-  packet[4] = flags;
-  packet[8] = hrOk ? 90 : 10;
-  packet[9] = 0xff; // battery unknown on prototype
+  packet[1] = flags;
+
+  uint16_t hrInt = hrOk ? (uint16_t)constrain((int)(hr + 0.5f), 30, 220) : 0;
+  packet[2] = hrInt & 0xff;
+  packet[3] = (hrInt >> 8) & 0xff;
+
+  int16_t tempX100 = tempOk ? (int16_t)(tempC * 100.0f) : 0;
+  packet[4] = tempX100 & 0xff;
+  packet[5] = (tempX100 >> 8) & 0xff;
+
+  packet[6] = seq & 0xff;
+  packet[7] = (seq >> 8) & 0xff;
+  seq++;
+
+  packet[8] = 255; // battery unknown on prototype
+  packet[9] = hrOk ? 90 : 10;
+  // 10-11 reserved
 
   if (vitalsChar) {
     vitalsChar->setValue(packet, NEEMA_PACKET_LEN);

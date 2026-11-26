@@ -1,6 +1,6 @@
 /**
  * YELLOW recheck loop: after raised BP, prompt a second reading, then re-triage.
- * Intervals come from triage.config.json (yellowRecheckMinutes).
+ * Intervals come from triage.config.json (recheckMinutes).
  */
 
 import {
@@ -78,7 +78,7 @@ export function createRecheckLoop(): RecheckHandle {
     scheduleFrom(result, initialBpId, nowMs = Date.now()) {
       if (result.level !== 'YELLOW') return;
       const minutes =
-        result.recheckInMinutes ?? getDefaultTriageConfig().yellowRecheckMinutes;
+        result.recheckInMinutes ?? getDefaultTriageConfig().recheckMinutes;
       scheduleInMs(result, initialBpId, minutes * 60_000, nowMs);
     },
     scheduleInMs,
@@ -112,7 +112,7 @@ export function createRecheckLoop(): RecheckHandle {
  */
 export function recheckDelayMs(result: TriageResult | null): number {
   if (import.meta.env.DEV) return 60_000;
-  const minutes = result?.recheckInMinutes ?? getDefaultTriageConfig().yellowRecheckMinutes;
+  const minutes = result?.recheckInMinutes ?? getDefaultTriageConfig().recheckMinutes;
   return minutes * 60_000;
 }
 

@@ -37,7 +37,63 @@ export type RuleId =
   | 'R9_SOS'
   | 'R10_REDUCED_BABY_MOVEMENT'
   | 'R11_SIGNAL_INVALID'
-  | 'R12_NOTHING_CONCERNING';
+  | 'R12_NOTHING_CONCERNING'
+  | 'R13_SHOCK_INDEX'
+  | 'R14_SIGNAL_LOST_WITH_SYMPTOMS';
+
+/** Optional daily check-in. CONTEXT ONLY — rules never read it. */
+export interface CheckIn {
+  id: string;
+  tsMs: number;
+  /** 0..100 slider. */
+  energy: number;
+  mood: 'great' | 'good' | 'okay' | 'low' | 'very_low';
+}
+
+/** Body regions for the tap-to-place map. */
+export type BodyRegion =
+  | 'head'
+  | 'upper_abdomen'
+  | 'lower_abdomen'
+  | 'breast'
+  | 'calf'
+  | 'face_hands'
+  | 'wound';
+
+/** Kiswahili EPDS answers. Cut-offs are placeholders for clinician review. */
+export interface EpdsResult {
+  id: string;
+  tsMs: number;
+  answers: number[];
+  total: number;
+  item10: number;
+}
+
+/** Birth preparedness checklist — not a risk score. */
+export interface BirthPlan {
+  facility?: string;
+  skilledAttendant: boolean;
+  bloodDonor: boolean;
+  savings: boolean;
+  companion: boolean;
+  transport: boolean;
+}
+
+/** CareLoop-style follow-up after an alert. Humans alone set arrive. */
+export type LoopStage = 'watch' | 'warn' | 'act' | 'chase' | 'arrive';
+
+export interface FollowUp {
+  alertId: string;
+  stage: LoopStage;
+  chaseCount: number;
+  lastChaseAtMs?: number;
+  /** ONLY a human sets this, never the app. */
+  arrivalConfirmedBy?: 'chp' | 'nurse';
+  arrivalConfirmedAtMs?: number;
+}
+
+/** Companion state. Derived from triage; never decides triage. */
+export type AvatarState = 'calm' | 'watchful' | 'urgent' | 'waiting';
 
 /** One reading from the band, about once per second. Never persisted. */
 export interface VitalsSample {

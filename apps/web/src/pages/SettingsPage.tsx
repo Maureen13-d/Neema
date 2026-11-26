@@ -104,6 +104,11 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => nav('/summary')}>
           {lang === 'sw' ? 'Kwa muuguzi' : 'Nurse QR'}
         </Button>
+        <Button variant="secondary" onClick={() => nav('/chase')}>
+          {lang === 'sw' ? 'Ufuatiliaji (CHP)' : 'Chase list (CHP)'}
+        </Button>
+      </div>
+      <div className="btn-row" style={{ marginTop: '0.75rem' }}>
         <Button variant="secondary" onClick={() => nav('/bp')}>
           {t('add_bp')}
         </Button>

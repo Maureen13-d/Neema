@@ -4,8 +4,8 @@
  */
 
 import {
-  calibrateSkinTempC,
   getDefaultTriageConfig,
+  summariseMinute,
   type VitalsMinute,
   type VitalsSample,
 } from '@neema/core';
@@ -38,19 +38,7 @@ export function createVitalsPipeline(options: PipelineOptions = {}) {
 
   async function flush(minuteStart: number, samples: VitalsSample[]) {
     if (samples.length === 0) return;
-    const hrs = samples.map((s) => s.heartRate).filter((v): v is number => v !== null);
-    const temps = samples
-      .map((s) => (s.skinTempC === null ? null : calibrateSkinTempC(s.skinTempC, config)))
-      .filter((v): v is number => v !== null);
-    const valid = samples.filter((s) => s.heartRate !== null || s.skinTempC !== null).length;
-    const row: VitalsMinute = {
-      tsMs: minuteStart,
-      hrMean: hrs.length ? avg(hrs) : null,
-      hrMin: hrs.length ? Math.min(...hrs) : null,
-      hrMax: hrs.length ? Math.max(...hrs) : null,
-      tempMeanC: temps.length ? avg(temps) : null,
-      validFraction: valid / samples.length,
-    };
+    const row = summariseMinute(samples, minuteStart, config.tempCalibrationOffsetC);
     await db.vitalsMinutes.put(row);
     await enforceVitalsRetention();
     if (shouldUpdateBaseline) {
@@ -74,31 +62,14 @@ export function createVitalsPipeline(options: PipelineOptions = {}) {
       }
       bucket.push(sample);
 
-      const hrs = bucket.map((s) => s.heartRate).filter((v): v is number => v !== null);
-      const temps = bucket
-        .map((s) => (s.skinTempC === null ? null : calibrateSkinTempC(s.skinTempC, config)))
-        .filter((v): v is number => v !== null);
-      const valid = bucket.filter((s) => s.heartRate !== null || s.skinTempC !== null).length;
-
       return {
         lastSample,
         recentSamples: [...recentSamples],
-        currentMinute: {
-          tsMs: minuteStart,
-          hrMean: hrs.length ? avg(hrs) : null,
-          hrMin: hrs.length ? Math.min(...hrs) : null,
-          hrMax: hrs.length ? Math.max(...hrs) : null,
-          tempMeanC: temps.length ? avg(temps) : null,
-          validFraction: bucket.length ? valid / bucket.length : 0,
-        },
+        currentMinute: summariseMinute(bucket, minuteStart, config.tempCalibrationOffsetC),
       };
     },
     getState(): PipelineState {
       return { lastSample, recentSamples: [...recentSamples], currentMinute: null };
     },
   };
-}
-
-function avg(nums: number[]): number {
-  return nums.reduce((a, b) => a + b, 0) / nums.length;
 }

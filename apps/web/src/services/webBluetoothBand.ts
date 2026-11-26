@@ -39,7 +39,10 @@ export function createWebBluetoothBand(): BandSource {
     id: 'web-bluetooth',
     async connect() {
       device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: 'Neema-Band' }, { services: [NEEMA_BLE.serviceUuid] }],
+        filters: [
+          { namePrefix: NEEMA_BLE.namePrefix },
+          { services: [NEEMA_BLE.serviceUuid] },
+        ],
         optionalServices: [NEEMA_BLE.serviceUuid],
       });
       server = await device.gatt!.connect();

@@ -8,6 +8,7 @@ import type {
   AlertRecord,
   BpReading,
   Contact,
+  FollowUp,
   SymptomReport,
   VitalsMinute,
 } from '@neema/core';
@@ -121,6 +122,7 @@ export class NeemaDb extends Dexie {
   signOff!: Table<SignOffRow, string>;
   messageReviews!: Table<MessageReviewRow, string>;
   hardwareReports!: Table<HardwareReportRow, string>;
+  followups!: Table<FollowUp, string>;
 
   constructor() {
     super('neema-mama-passport');
@@ -161,6 +163,23 @@ export class NeemaDb extends Dexie {
       signOff: 'id',
       messageReviews: 'key',
       hardwareReports: 'id, startedAtMs',
+    });
+    this.version(4).stores({
+      profile: 'id',
+      vitalsMinutes: 'tsMs',
+      vitalsDaily: 'dayTsMs',
+      bp: 'id, tsMs',
+      symptoms: 'id, tsMs',
+      alerts: 'id, tsMs',
+      contacts: 'id, escalationOrder',
+      consent: 'id',
+      baseline: 'id',
+      visits: 'id, tsMs',
+      auth: 'id',
+      signOff: 'id',
+      messageReviews: 'key',
+      hardwareReports: 'id, startedAtMs',
+      followups: 'alertId, stage',
     });
   }
 }

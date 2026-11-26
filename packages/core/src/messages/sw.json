@@ -4,9 +4,10 @@
   "yellow_fever": "Joto lako limeinuka. Pima tena na uwasiliane na mhudumu wa afya leo.",
   "yellow_pulse_baseline": "Mapigo ya moyo yako yako juu ya kawaida yako. Pumzika na tupime tena.",
   "yellow_baby_movement": "Mwendo wa mtoto umepungua. Tafadhali nenda klinikini leo.",
-  "red_go_now": "Nenda kituo cha afya sasa. Usisubiri asubuhi. Tumetuma ujumbe kwa mhudumu wako.",
-  "red_bleeding": "Unaona damu nyingi. Nenda kituo cha afya sasa. Tumetuma ujumbe kwa mhudumu wako.",
-  "red_sos": "Ishara ya SOS imepokelewa. Tunatafuta msaada. Nenda kituo cha afya ikiwa unaweza.",
+  "yellow_signal_lost": "Bendi haioni vizuri, lakini umeripoti dalili. Wasiliana na mhudumu wa afya leo.",
+  "red_go_now": "Nenda kituo cha afya sasa. Usisubiri asubuhi. Fungua ujumbe kwa mhudumu wako.",
+  "red_bleeding": "Unaona damu nyingi. Nenda kituo cha afya sasa. Fungua ujumbe kwa mhudumu wako.",
+  "red_sos": "Ishara ya SOS imepokelewa. Fungua ujumbe kwa msaada. Nenda kituo cha afya ikiwa unaweza.",
   "unknown_check_band": "Angalia bendi yako. Hakuna data sahihi kwa sasa.",
   "_meta": {
     "status": "draft",

@@ -5,9 +5,16 @@
 
 export type {
   AlertRecord,
+  AvatarState,
   BandCommand,
+  BirthPlan,
+  BodyRegion,
   BpReading,
+  CheckIn,
   Contact,
+  EpdsResult,
+  FollowUp,
+  LoopStage,
   RuleId,
   Stage,
   SymptomCode,
@@ -21,6 +28,7 @@ export type {
 
 export {
   NEEMA_BLE,
+  decodeVitals,
   encodeBandCommand,
   encodeVitalsPacket,
   parseBandCommand,
@@ -46,10 +54,22 @@ export {
 
 export {
   buildNurseSummary,
+  summariseMinute,
   type NurseSummary,
   type NurseSummaryInput,
   type SummaryShareChoices,
 } from './summary.js';
+
+export {
+  advanceFollowUp,
+  chaseList,
+  confirmArrival,
+  openFollowUp,
+} from './followup.js';
+
+export { avatarState } from './avatar.js';
+
+export { REGION_TO_SYMPTOM } from './bodyMap.js';
 
 export { default as triageConfigJson } from './config/triage.config.json';
 export { default as swMessages } from './messages/sw.json';

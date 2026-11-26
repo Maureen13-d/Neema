@@ -1,15 +1,17 @@
 # Decisions and assumptions
 
-Recorded while implementing from the Backend Cursor brief (PDF pages 1–8 were available; later sections were referenced but truncated in that PDF).
+Recorded while implementing from the Backend Cursor brief.
 
 ## Assumptions
 
-1. **BLE packet layout** — Defined in `packages/core/src/protocol.ts` (10-byte vitals notify, 3-byte command). Firmware mirrors this. Change both sides together.
+1. **BLE packet layout** — Migrated to the Nov 2025 brief contract in `packages/core/src/protocol.ts`: 12-byte vitals notify (version, flags, uint16 HR, int16 temp×100, seq, battery, signal, reserved), 2-byte commands, UUIDs `7a1c0001/2/3-5e3b-…`, device name prefix `Neema-`. Firmware mirrors this. Older 10-byte/`6e65656d-…` packets are **not** accepted.
 2. **Sleep window timezone** — Rest-context uses `Africa/Nairobi` by default via `Intl` (`TriageInput.timeZone`).
 3. **Baseline learning period** — ~3 days of minute samples before R8 z-scores are trusted.
-4. **Web app first** — PWA/Vite harness only; native Flutter shell is roadmap.
-5. **SMS** — Prototype opens a prefilled `sms:` link; no silent SMS or gateway.
-6. **Clinical thresholds** — Placeholders in `triage.config.json` pending clinician review.
+4. **Web app first** — Vite/React PWA; native Flutter shell is roadmap.
+5. **SMS** — Prototype opens a prefilled `sms:` link; no silent SMS or gateway. Copy must say “open the message”, never “we have messaged”.
+6. **Clinical thresholds** — Nested placeholders in `triage.config.json` (brief shape + sleep window / calibration / warning symptoms). Pending clinician review.
+7. **R10 gestation gate** — Brief table fires for any pregnancy; when `gestationWeeks` is provided we still require ≥ `reducedMovementMinGestationWeeks` (default 28).
+8. **Follow-up step interval** — Default 5 minutes between watch → warn → act → chase. Chase page has a demo “Advance step” control.
 
 ## Explicitly out of scope (per brief)
 

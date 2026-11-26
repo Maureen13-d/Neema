@@ -6,7 +6,7 @@ import {
   parseVitalsPacket,
 } from '../src/protocol.js';
 
-describe('protocol', () => {
+describe('protocol (12-byte brief layout)', () => {
   it('round-trips a vitals packet', () => {
     const encoded = encodeVitalsPacket({
       seq: 42,
@@ -17,6 +17,8 @@ describe('protocol', () => {
       sos: false,
       demo: true,
     });
+    expect(encoded.length).toBe(12);
+    expect(encoded[0]).toBe(1);
     const parsed = parseVitalsPacket(encoded, 1_000);
     expect(parsed).toMatchObject({
       seq: 42,
@@ -47,18 +49,49 @@ describe('protocol', () => {
     expect(parsed?.sos).toBe(true);
   });
 
-  it('rejects bad magic', () => {
-    expect(parseVitalsPacket(new Uint8Array(10), 0)).toBeNull();
+  it('rejects short packets and wrong version', () => {
+    expect(parseVitalsPacket(new Uint8Array(11), 0)).toBeNull();
+    const bad = encodeVitalsPacket({
+      seq: 1,
+      heartRate: 70,
+      skinTempC: 36.5,
+      signalQuality: 80,
+      batteryPct: 50,
+      sos: false,
+      demo: false,
+    });
+    bad[0] = 2;
+    expect(parseVitalsPacket(bad, 0)).toBeNull();
   });
 
-  it('round-trips band commands', () => {
+  it('nulls out physically impossible HR', () => {
+    const encoded = encodeVitalsPacket({
+      seq: 1,
+      heartRate: 400,
+      skinTempC: 36.5,
+      signalQuality: 80,
+      batteryPct: 50,
+      sos: false,
+      demo: false,
+    });
+    // Encoder clamps to 220; craft a raw 400 bpm packet instead.
+    const view = new DataView(encoded.buffer);
+    encoded[1] = 0b0011; // hr+temp valid
+    view.setUint16(2, 400, true);
+    const parsed = parseVitalsPacket(encoded, 0);
+    expect(parsed?.heartRate).toBeNull();
+  });
+
+  it('round-trips 2-byte band commands', () => {
     const cmds = [
       { kind: 'led' as const, color: 'red' as const },
       { kind: 'vibrate' as const, pattern: 'sos' as const },
       { kind: 'demo' as const, scenario: 3 as const },
     ];
     for (const cmd of cmds) {
-      expect(parseBandCommand(encodeBandCommand(cmd))).toEqual(cmd);
+      const bytes = encodeBandCommand(cmd);
+      expect(bytes.length).toBe(2);
+      expect(parseBandCommand(bytes)).toEqual(cmd);
     }
   });
 });

@@ -24,9 +24,10 @@ const GLOSSES: Record<string, string> = {
   yellow_fever: 'Your temperature is raised. Recheck and contact a health worker today.',
   yellow_pulse_baseline: 'Your heart rate is above your usual. Rest and we will measure again.',
   yellow_baby_movement: 'Baby movement has reduced. Please go to the clinic today.',
-  red_go_now: 'Go to a health facility now. Do not wait for morning. We have messaged your health worker.',
-  red_bleeding: 'You are seeing heavy bleeding. Go to a health facility now. We have messaged your health worker.',
-  red_sos: 'SOS signal received. We are seeking help. Go to a facility if you can.',
+  yellow_signal_lost: 'The band signal is weak, but you reported symptoms. Contact a health worker today.',
+  red_go_now: 'Go to a health facility now. Do not wait for morning. Open the message to your health worker.',
+  red_bleeding: 'You are seeing heavy bleeding. Go to a health facility now. Open the message to your health worker.',
+  red_sos: 'SOS signal received. Open the message for help. Go to a facility if you can.',
   unknown_check_band: 'Check your band. There is no valid data right now.',
 };
 

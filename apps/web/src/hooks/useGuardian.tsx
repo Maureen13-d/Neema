@@ -28,6 +28,7 @@ import {
 } from '../services/recheck';
 import { runAlertChain } from '../services/alertChain';
 import { acknowledgeRed, activeRedAlert, markNotified, type AcknowledgedBy } from '../services/alerts';
+import { tickFollowUps } from '../services/followUp';
 import { loadProfile } from '../services/passport';
 import { resetDemoData, seedDemoStep, type DemoStep } from '../services/demoPlayer';
 import type { EscalationHandle } from '../services/escalation';
@@ -44,7 +45,7 @@ export interface PendingSms {
   opened: boolean;
 }
 
-/** A reply from the CHP. In demo mode it is scripted (project doc §10). */
+/** A reply from the CHP. In demo mode it is scripted (project doc ??10). */
 export interface ChpReply {
   name: string;
   text: string;
@@ -124,7 +125,7 @@ interface GuardianState {
   clearPendingSms: () => void;
   clearError: () => void;
   openPendingSms: () => void;
-  /** Simulator-only: switch demo vitals scenario (0–3). */
+  /** Simulator-only: switch demo vitals scenario (0?3). */
   setDemoScenario: (n: 0 | 1 | 2 | 3) => Promise<void>;
 }
 
@@ -218,26 +219,42 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     ) {
       chainInFlight.current = true;
       try {
-        const chain = await runAlertChain(result, { allowDemo: true, skipConsent: true });
-        if (chain) {
-          setChpReply(null);
-          setPendingSms(
-            chain.smsLinks.map(({ contact, href }) => ({
-              contactId: contact.id,
-              name: contact.name,
-              role: contact.role,
-              href,
-              opened: false,
-            })),
-          );
-          setActiveAlertId(chain.alertId);
-          escalationRef.current?.stop();
-          escalationRef.current = chain.escalation;
+        // On reload, sticky/open alerts must not spawn a second chain.
+        const latest = await db.alerts.orderBy('tsMs').reverse().first();
+        const reuseOpen =
+          latest &&
+          latest.level === result.level &&
+          latest.acknowledgedAtMs === undefined &&
+          prev === null;
+        if (reuseOpen) {
+          setActiveAlertId(latest.id);
           setLastChainNote(
             result.level === 'RED'
               ? 'Open the message to reach your CHP now.'
-              : 'Guidance is ready, and a quiet SMS for your CHP is prepared.',
+              : 'A quiet heads-up for your CHP is ready.',
           );
+        } else {
+          const chain = await runAlertChain(result, { allowDemo: true, skipConsent: true });
+          if (chain) {
+            setChpReply(null);
+            setPendingSms(
+              chain.smsLinks.map(({ contact, href }) => ({
+                contactId: contact.id,
+                name: contact.name,
+                role: contact.role,
+                href,
+                opened: false,
+              })),
+            );
+            setActiveAlertId(chain.alertId);
+            escalationRef.current?.stop();
+            escalationRef.current = chain.escalation;
+            setLastChainNote(
+              result.level === 'RED'
+                ? 'Open the message to reach your CHP now.'
+                : 'Guidance is ready, and a quiet SMS for your CHP is prepared.',
+            );
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -312,9 +329,11 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
 
       void escalationRef.current?.tick().then((step) => {
         if (step.kind === 'notify') {
-          setLastChainNote(`Escalation → ${step.label}: contact ${step.contact.name}`);
+          setLastChainNote(`Escalation ? ${step.label}: contact ${step.contact.name}`);
         }
       });
+
+      void tickFollowUps();
     }, 1000);
     return () => window.clearInterval(id);
   }, []);
@@ -338,7 +357,7 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
             await sim.connect();
             setBandMode('simulator');
             setConnected(true);
-            setError('Bluetooth unavailable — using simulator instead.');
+            setError('Bluetooth unavailable ? using simulator instead.');
           } catch (simErr) {
             setError(simErr instanceof Error ? simErr.message : String(simErr));
           }
