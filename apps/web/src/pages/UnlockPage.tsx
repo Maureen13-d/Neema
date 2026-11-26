@@ -45,7 +45,7 @@ export function UnlockPage() {
         title={lang === 'sw' ? 'Haikuweza kufungua' : 'Could not unlock'}
         detail={error}
         onRetry={() => setError(null)}
-        onHome={() => nav('/')}
+        onHome={() => nav('/start')}
       />
     );
   }

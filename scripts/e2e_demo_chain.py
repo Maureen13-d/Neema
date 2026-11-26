@@ -49,6 +49,14 @@ with sync_playwright() as p:
     page = ctx.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
+
+    # Public band page: renders, and its main button leads into the app
+    page.goto(f"{BASE}/")
+    page.wait_for_timeout(1200)
+    check("Landing page shows the band", page.locator(".lp-hero .lp-band").count() == 1 and page.locator("h1.lp-display").count() == 1)
+    page.locator(".lp-hero .lp-pill--dark").first.click()
+    page.wait_for_timeout(1500)
+    check("Landing CTA opens the app", "/home" in page.url or "/unlock" in page.url or "/contacts" in page.url, page.url)
     page.goto(f"{BASE}/home")
     page.wait_for_timeout(1500)
 
