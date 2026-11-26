@@ -1,7 +1,7 @@
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { msingiTtsPlugin } from './src/vite/msingiPlugin';
+import { msingiTtsPlugin } from './src/vite/msingiPlugin.js';
 
 export default defineConfig({
   envDir: path.resolve(__dirname),
