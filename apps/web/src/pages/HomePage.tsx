@@ -6,7 +6,9 @@ import { useGuardian } from '../hooks/useGuardian';
 import { useLocale } from '../hooks/useLocale';
 import { useToday } from '../hooks/useToday';
 import { latestCheckInToday } from '../services/checkIn';
+import { latestEpds } from '../services/epdsStore';
 import { listChase } from '../services/followUp';
+import { EMPTY_BIRTH_PLAN, loadProfile } from '../services/passport';
 import { getMessageTextFor } from '../services/speech';
 import { recheckDelayMs } from '../services/recheck';
 import { AvatarCompanion } from '../ui/AvatarCompanion';
@@ -79,14 +81,34 @@ export function HomePage() {
   const recheckDue = g.recheck.status === 'due';
   const recheckScheduled = g.recheck.status === 'scheduled';
   const [awaitingArrival, setAwaitingArrival] = useState(false);
+  const [openLoops, setOpenLoops] = useState(0);
   const [checkInDone, setCheckInDone] = useState(false);
+  const [epdsMeta, setEpdsMeta] = useState<string | null>(null);
+  const [birthReady, setBirthReady] = useState<number | null>(null);
 
   useEffect(() => {
     void listChase().then((open) => {
+      setOpenLoops(open.length);
       setAwaitingArrival(open.some((f) => f.stage === 'chase' || f.stage === 'act'));
     });
     void latestCheckInToday().then((c) => setCheckInDone(Boolean(c)));
-  }, [level, g.activeAlertId]);
+    void latestEpds().then((row) => {
+      if (!row) {
+        setEpdsMeta(null);
+        return;
+      }
+      setEpdsMeta(clock(row.tsMs, lang));
+    });
+    void loadProfile()
+      .then((p) => {
+        const plan = { ...EMPTY_BIRTH_PLAN, ...p?.birthPlan };
+        const done = [plan.skilledAttendant, plan.bloodDonor, plan.savings, plan.companion, plan.transport].filter(
+          Boolean,
+        ).length;
+        setBirthReady(done);
+      })
+      .catch(() => setBirthReady(null));
+  }, [level, g.activeAlertId, lang]);
 
   const companion = avatarState(level, awaitingArrival && level === 'RED');
 
@@ -111,6 +133,8 @@ export function HomePage() {
   const nextSms = g.pendingSms.find((p) => !p.opened);
   if (nextSms && alertActive) {
     action = { label: t('open_sms'), href: nextSms.href, onClick: () => g.markSmsOpened(nextSms.contactId) };
+  } else if (openLoops > 0 && (awaitingArrival || (level === 'RED' && g.redAcknowledged))) {
+    action = { label: t('chase_cta'), onClick: () => nav('/chase') };
   } else if (level === 'RED' && g.redAcknowledged) {
     action = { label: lang === 'sw' ? 'Ona hatua' : 'See steps', onClick: () => nav('/alert') };
   } else if (level === 'RED') {
@@ -170,14 +194,47 @@ export function HomePage() {
     },
     {
       key: 'checkin',
-      title: lang === 'sw' ? 'Angalia leo' : 'Daily check-in',
+      title: t('checkin_title'),
       meta: checkInDone ? todayWord : t('not_yet_today'),
       to: '/check-in',
       done: checkInDone,
     },
+    {
+      key: 'epds',
+      title: t('epds_title'),
+      meta: epdsMeta
+        ? lang === 'sw'
+          ? `Mwisho ${epdsMeta}`
+          : `Last ${epdsMeta}`
+        : t('epds_sub'),
+      to: '/epds',
+      done: Boolean(epdsMeta),
+    },
+    {
+      key: 'birth',
+      title: t('birth_plan_row'),
+      meta:
+        birthReady === null
+          ? t('not_yet_today')
+          : lang === 'sw'
+            ? `${birthReady}/5 tayari`
+            : `${birthReady}/5 ready`,
+      to: '/passport',
+      done: birthReady === 5,
+    },
     { key: 'band', title: t('band'), meta: bandMeta, to: '/vitals', icon: <IconBand /> },
     { key: 'nurse', title: t('nurse_title'), meta: t('nurse_sub'), to: '/summary', icon: <IconQr /> },
   ];
+
+  if (openLoops > 0) {
+    rows.unshift({
+      key: 'chase',
+      title: t('chase_title'),
+      meta: t('chase_open'),
+      to: '/chase',
+      icon: <IconBell />,
+    });
+  }
 
   const heart = g.sample?.heartRate ?? null;
   const temp = g.sample?.skinTempC ?? null;

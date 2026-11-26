@@ -20,14 +20,49 @@ const LIBRARY: Record<string, { titleEn: string; titleSw: string; note: string }
     titleSw: 'Pima shinikizo tena',
     note: 'placeholder · not KSL',
   },
+  yellow_fever: {
+    titleEn: 'Raised temperature',
+    titleSw: 'Joto limepanda',
+    note: 'placeholder · not KSL',
+  },
+  yellow_pulse_baseline: {
+    titleEn: 'Heart rate above usual',
+    titleSw: 'Mapigo juu ya kawaida',
+    note: 'placeholder · not KSL',
+  },
+  yellow_baby_movement: {
+    titleEn: 'Baby moving less',
+    titleSw: 'Mtoto anatembea kidogo',
+    note: 'placeholder · not KSL',
+  },
+  yellow_signal_lost: {
+    titleEn: 'Weak band with symptoms',
+    titleSw: 'Ishara dhaifu na dalili',
+    note: 'placeholder · not KSL',
+  },
   red_go_now: {
     titleEn: 'Go to a facility now',
     titleSw: 'Nenda kituo sasa',
     note: 'placeholder · not KSL',
   },
+  red_bleeding: {
+    titleEn: 'Heavy bleeding — go now',
+    titleSw: 'Kutokwa damu nyingi — nenda sasa',
+    note: 'placeholder · not KSL',
+  },
   red_sos: {
     titleEn: 'SOS — seek help',
     titleSw: 'SOS — tafuta msaada',
+    note: 'placeholder · not KSL',
+  },
+  unknown_check_band: {
+    titleEn: 'Check your band',
+    titleSw: 'Angalia bendi yako',
+    note: 'placeholder · not KSL',
+  },
+  epds_ok: {
+    titleEn: 'Answers kept private',
+    titleSw: 'Majibu yamehifadhiwa kwa faragha',
     note: 'placeholder · not KSL',
   },
   epds_talk_to_person: {

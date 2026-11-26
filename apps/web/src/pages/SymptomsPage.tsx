@@ -104,6 +104,18 @@ export function SymptomsPage() {
           </button>
         ))}
       </div>
+      {selected.includes('low_mood') ? (
+        <div className="panel" style={{ marginTop: '1rem' }}>
+          <strong>{t('epds_title')}</strong>
+          <p className="soft-note" style={{ margin: '0.35rem 0 0.65rem' }}>
+            {t('epds_sub')}
+          </p>
+          <Button variant="secondary" style={{ width: '100%' }} onClick={() => nav('/epds')}>
+            {lang === 'sw' ? 'Fungua EPDS' : 'Open EPDS'}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="btn-row" style={{ marginTop: '1.25rem' }}>
         <Button variant="secondary" onClick={() => nav('/home')}>
           {lang === 'sw' ? 'Ghairi' : 'Cancel'}

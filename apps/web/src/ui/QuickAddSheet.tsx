@@ -30,6 +30,12 @@ export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () =>
       sub: t('checkin_sub'),
       icon: <IconFeel />,
     },
+    {
+      to: '/epds',
+      title: t('epds_title'),
+      sub: t('epds_sub'),
+      icon: <IconFeel />,
+    },
     { to: '/summary', title: t('nurse_title'), sub: t('nurse_sub'), icon: <IconQr /> },
   ];
 

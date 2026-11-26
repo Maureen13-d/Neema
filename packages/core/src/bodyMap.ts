@@ -5,7 +5,10 @@
 
 import type { BodyRegion, SymptomCode } from './types.js';
 
-/** Maps a tapped body region to the symptom codes the rules understand. */
+/**
+ * Maps a tapped body region to the symptom codes the rules understand.
+ * Regions without a dedicated SymptomCode stay on `other` — do not invent clinical codes.
+ */
 export const REGION_TO_SYMPTOM: Record<BodyRegion, SymptomCode[]> = {
   head: ['headache', 'blurred_vision'],
   upper_abdomen: ['upper_abdominal_pain'],

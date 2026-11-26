@@ -1,6 +1,6 @@
 /* Neema offline shell. Caches the app shell so the page can open without network.
    IndexedDB (Mama Passport) already stays on-device. This SW does not phone home. */
-const CACHE = 'neema-shell-v1';
+const CACHE = 'neema-shell-v2';
 const PRECACHE = ['/', '/index.html', '/manifest.webmanifest', '/brand/mark.svg'];
 
 self.addEventListener('install', (event) => {

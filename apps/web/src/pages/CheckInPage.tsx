@@ -22,21 +22,49 @@ const MOODS: { id: CheckIn['mood']; en: string; sw: string }[] = [
 /** Soft daily check-in — energy slider and mood chips. */
 export function CheckInPage() {
   const nav = useNavigate();
-  const { lang } = useLocale();
+  const { t, lang } = useLocale();
   const [energy, setEnergy] = useState(60);
   const [mood, setMood] = useState<CheckIn['mood']>('okay');
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [offerEpds, setOfferEpds] = useState(false);
 
   async function save() {
     setBusy(true);
     try {
       await saveCheckIn(energy, mood);
-      setSaved(true);
-      window.setTimeout(() => nav('/home'), 600);
+      if (mood === 'low' || mood === 'very_low') {
+        setOfferEpds(true);
+      } else {
+        window.setTimeout(() => nav('/home'), 400);
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  if (offerEpds) {
+    return (
+      <main className="screen">
+        <BrandMark />
+        <h1 className="screen-title" style={{ marginTop: '1rem' }}>
+          {lang === 'sw' ? 'Asante mama' : 'Thank you'}
+        </h1>
+        <p className="screen-sub">
+          {lang === 'sw'
+            ? 'Ukijisikia chini, unaweza kujaza ukaguzi wa hali (EPDS). Si rangi ya tahadhari — ni msaada wa mtu.'
+            : 'If you’re feeling low, you can take a private mood screen (EPDS). It never paints a triage colour — it offers a person.'}
+        </p>
+        <div className="btn-row" style={{ marginTop: '1.25rem' }}>
+          <Button variant="primary" onClick={() => nav('/epds')}>
+            {t('epds_title')}
+          </Button>
+          <Button variant="ghost" onClick={() => nav('/home')}>
+            {t('go_home')}
+          </Button>
+        </div>
+        <p className="trust-line">{t('saved_here')}</p>
+      </main>
+    );
   }
 
   return (
@@ -44,7 +72,7 @@ export function CheckInPage() {
       {busy ? <LoadingScreen /> : null}
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        {lang === 'sw' ? 'Angalia leo' : 'Today’s check-in'}
+        {t('checkin_title')}
       </h1>
       <p className="screen-sub">
         {lang === 'sw'
@@ -90,12 +118,10 @@ export function CheckInPage() {
           {lang === 'sw' ? 'Ghairi' : 'Cancel'}
         </Button>
         <Button variant="primary" onClick={() => void save()}>
-          {saved ? (lang === 'sw' ? 'Imehifadhiwa' : 'Saved') : lang === 'sw' ? 'Hifadhi' : 'Save'}
+          {lang === 'sw' ? 'Hifadhi' : 'Save'}
         </Button>
       </div>
-      <p className="trust-line">
-        {lang === 'sw' ? 'Imehifadhiwa kwenye simu hii' : 'Saved on this phone'}
-      </p>
+      <p className="trust-line">{t('saved_here')}</p>
     </main>
   );
 }

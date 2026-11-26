@@ -74,6 +74,14 @@ export function AlertPage() {
             {g.lastChainNote ??
               (lang === 'sw' ? 'Mtu anashughulikia. Endelea kwenda kituo cha afya.' : 'Someone is acting on this. Keep going to the facility.')}
           </p>
+          <p className="soft-note" style={{ marginTop: '0.35rem' }}>
+            {lang === 'sw'
+              ? 'Kuthibitisha si kuwasili — CHP au muuguzi hufunga kitanzi kwenye orodha ya ufuatiliaji.'
+              : 'Acknowledging is not arrival — a CHP or nurse closes the loop on the chase list.'}
+          </p>
+          <Button variant="secondary" style={{ width: '100%', marginTop: '0.65rem' }} onClick={() => nav('/chase')}>
+            {t('chase_cta')}
+          </Button>
         </div>
       ) : null}
 
@@ -195,9 +203,16 @@ export function AlertPage() {
           </Button>
         </div>
       ) : (
-        <Button variant="ghost" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/home')}>
-          {t('go_home')}
-        </Button>
+        <>
+          {isRed ? (
+            <Button variant="secondary" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/chase')}>
+              {t('chase_cta')}
+            </Button>
+          ) : null}
+          <Button variant="ghost" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/home')}>
+            {t('go_home')}
+          </Button>
+        </>
       )}
     </main>
   );

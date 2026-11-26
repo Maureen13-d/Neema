@@ -9,6 +9,7 @@ import type { FollowUp } from '@neema/core';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
 import { listChase, markArrival, tickFollowUps } from '../services/followUp';
+import { getReadiness } from '../services/readiness';
 import { db } from '../storage/db';
 import { useLocale } from '../hooks/useLocale';
 
@@ -21,9 +22,10 @@ interface ChaseRow extends FollowUp {
 /** CHP-facing chase list for open alert loops. */
 export function ChasePage() {
   const nav = useNavigate();
-  const { lang } = useLocale();
+  const { t, lang } = useLocale();
   const [rows, setRows] = useState<ChaseRow[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  const [demoAdvance, setDemoAdvance] = useState(false);
 
   const loadRows = useCallback(async () => {
     const open = await listChase();
@@ -42,6 +44,7 @@ export function ChasePage() {
 
   useEffect(() => {
     void loadRows();
+    void getReadiness().then((r) => setDemoAdvance(!r.fieldReady));
     const id = window.setInterval(() => {
       void tickFollowUps().then(() => loadRows());
     }, 30_000);
@@ -69,7 +72,7 @@ export function ChasePage() {
     <main className="screen">
       <BrandMark />
       <h1 className="screen-title" style={{ marginTop: '1rem' }}>
-        {lang === 'sw' ? 'Orodha ya ufuatiliaji' : 'Chase list'}
+        {t('chase_title')}
       </h1>
       <p className="screen-sub">
         {lang === 'sw'
@@ -115,11 +118,13 @@ export function ChasePage() {
 
       <div className="btn-row" style={{ marginTop: '1.25rem' }}>
         <Button variant="ghost" onClick={() => nav('/home')}>
-          {lang === 'sw' ? 'Nyumbani' : 'Home'}
+          {t('go_home')}
         </Button>
-        <Button variant="secondary" onClick={() => void advanceNow()}>
-          {lang === 'sw' ? 'Sogeza hatua' : 'Advance step'}
-        </Button>
+        {demoAdvance ? (
+          <Button variant="secondary" onClick={() => void advanceNow()}>
+            {lang === 'sw' ? 'Sogeza hatua' : 'Advance step'}
+          </Button>
+        ) : null}
         <Button variant="ghost" onClick={() => void loadRows()}>
           {lang === 'sw' ? 'Onyesha upya' : 'Refresh'}
         </Button>

@@ -150,6 +150,18 @@ const COPY: Dict = {
     en: 'Energy and mood — context only',
     sw: 'Nguvu na hali — muktadha tu',
   },
+  chase_title: { en: 'Chase list', sw: 'Orodha ya ufuatiliaji' },
+  chase_open: {
+    en: 'Open care loops need a person to confirm arrival',
+    sw: 'Vitanzi vilivyo wazi vinahitaji mtu athibitishe kuwasili',
+  },
+  chase_cta: { en: 'Open chase list', sw: 'Fungua ufuatiliaji' },
+  epds_title: { en: 'Mood screen (EPDS)', sw: 'Ukaguzi wa hali (EPDS)' },
+  epds_sub: {
+    en: 'Private on this phone — never a triage colour',
+    sw: 'Faragha kwenye simu — si rangi ya tahadhari',
+  },
+  birth_plan_row: { en: 'Birth preparedness', sw: 'Maandalizi ya kuzaliwa' },
 };
 
 interface LocaleState {

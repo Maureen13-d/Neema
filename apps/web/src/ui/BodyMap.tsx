@@ -1,7 +1,9 @@
 /**
  * Tap-to-place body map. Regions map to the same SymptomCode vocabulary via REGION_TO_SYMPTOM.
+ * Regions that only map to `other` track their own visual state so they do not all light up together.
  */
 
+import { useState } from 'react';
 import { REGION_TO_SYMPTOM, type BodyRegion, type SymptomCode } from '@neema/core';
 
 const REGIONS: { id: BodyRegion; labelEn: string; labelSw: string; cx: number; cy: number; r: number }[] = [
@@ -14,6 +16,11 @@ const REGIONS: { id: BodyRegion; labelEn: string; labelSw: string; cx: number; c
   { id: 'calf', labelEn: 'Calf / leg', labelSw: 'Mguu', cx: 42, cy: 90, r: 9 },
 ];
 
+function isOtherOnly(id: BodyRegion): boolean {
+  const codes = REGION_TO_SYMPTOM[id];
+  return codes.length === 1 && codes[0] === 'other';
+}
+
 /** Interactive body silhouette. Tapping a region adds its mapped symptom codes. */
 export function BodyMap({
   selected,
@@ -24,9 +31,31 @@ export function BodyMap({
   onToggleCodes: (codes: SymptomCode[]) => void;
   lang?: 'en' | 'sw';
 }) {
+  const [otherRegions, setOtherRegions] = useState<Set<BodyRegion>>(() => new Set());
+
   function regionActive(id: BodyRegion): boolean {
+    if (isOtherOnly(id)) return otherRegions.has(id) && selected.includes('other');
+    return REGION_TO_SYMPTOM[id].some((c) => selected.includes(c));
+  }
+
+  function onRegion(id: BodyRegion) {
     const codes = REGION_TO_SYMPTOM[id];
-    return codes.some((c) => selected.includes(c));
+    if (isOtherOnly(id)) {
+      setOtherRegions((prev) => {
+        const next = new Set(prev);
+        const turningOff = next.has(id);
+        if (turningOff) next.delete(id);
+        else next.add(id);
+        const stillNeedsOther = next.size > 0;
+        const otherOn = selected.includes('other');
+        // Keep SymptomCode `other` in sync with whether any other-only region is lit.
+        if (stillNeedsOther && !otherOn) onToggleCodes(['other']);
+        if (!stillNeedsOther && otherOn) onToggleCodes(['other']);
+        return next;
+      });
+      return;
+    }
+    onToggleCodes(codes);
   }
 
   return (
@@ -49,11 +78,11 @@ export function BodyMap({
               tabIndex={0}
               aria-pressed={regionActive(r.id)}
               aria-label={lang === 'sw' ? r.labelSw : r.labelEn}
-              onClick={() => onToggleCodes(REGION_TO_SYMPTOM[r.id])}
+              onClick={() => onRegion(r.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onToggleCodes(REGION_TO_SYMPTOM[r.id]);
+                  onRegion(r.id);
                 }
               }}
             />
@@ -65,8 +94,8 @@ export function BodyMap({
       </svg>
       <p className="soft-note" style={{ margin: '0.5rem 0 0' }}>
         {lang === 'sw'
-          ? 'Gusa sehemu ya mwili — inachagua dalili zile zile.'
-          : 'Tap a body area — it picks the same symptom codes.'}
+          ? 'Gusa sehemu ya mwili — inachagua dalili zile zile. Sehemu bila kanuni maalum huchagua “Nyingine”.'
+          : 'Tap a body area — it picks the same symptom codes. Areas without a dedicated rule select “Other”.'}
       </p>
     </div>
   );
