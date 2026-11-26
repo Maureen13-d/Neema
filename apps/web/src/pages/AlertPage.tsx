@@ -7,6 +7,7 @@ import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 import { getMessageTextFor } from '../services/speech';
+import { reasonPhrase, topReason } from '@neema/core';
 
 /** Guided alert ritual — breathe → message → wait. */
 export function AlertPage() {
@@ -14,8 +15,11 @@ export function AlertPage() {
   const nav = useNavigate();
   const { t, lang } = useLocale();
   const level = g.triage?.level ?? 'UNKNOWN';
-  const smsHref = g.pendingSmsHref;
+  const sms = g.pendingSms;
   const isRed = level === 'RED';
+  const why = g.triage ? reasonPhrase(topReason(g.triage.reasons), lang) : null;
+  const roleLabel = (role: string) =>
+    role === 'chp' ? 'CHP' : role === 'family' ? (lang === 'sw' ? 'Familia' : 'Family') : lang === 'sw' ? 'Msimamizi' : 'Supervisor';
 
   if (g.error) {
     return (
@@ -56,6 +60,35 @@ export function AlertPage() {
       <p className="screen-sub" style={{ textAlign: 'center', marginInline: 'auto' }}>
         {(g.triage ? getMessageTextFor(g.triage.messageKey, lang) : null) ?? g.message}
       </p>
+      {why ? (
+        <p className="soft-note" style={{ textAlign: 'center' }} data-testid="alert-reason">
+          {lang === 'sw' ? 'Sababu' : 'Why'}: {why}
+        </p>
+      ) : null}
+
+      {isRed && g.redAcknowledged ? (
+        <div className="panel" role="status" style={{ margin: '0.75rem 0' }}>
+          <strong>{lang === 'sw' ? 'Imethibitishwa' : 'Confirmed'}</strong>
+          <p className="soft-note" style={{ marginTop: '0.35rem' }}>
+            {g.lastChainNote ??
+              (lang === 'sw' ? 'Mtu anashughulikia. Endelea kwenda kituo cha afya.' : 'Someone is acting on this. Keep going to the facility.')}
+          </p>
+        </div>
+      ) : null}
+
+      {g.chpReply ? (
+        <div className="panel chp-reply" role="status" aria-live="assertive" style={{ margin: '0.75rem 0' }}>
+          <strong>
+            {g.chpReply.name} · {lang === 'sw' ? 'amejibu' : 'replied'}
+          </strong>
+          <p style={{ margin: '0.35rem 0 0' }}>“{g.chpReply.text}”</p>
+          {g.chpReply.scripted ? (
+            <p className="soft-note" style={{ marginTop: '0.35rem' }}>
+              {lang === 'sw' ? 'Jibu la maonyesho' : 'Scripted demo reply'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <ol className="ritual-steps">
         <li>
@@ -85,11 +118,28 @@ export function AlertPage() {
         </li>
       </ol>
 
-      {smsHref ? (
-        <a className={`btn ${isRed ? 'btn-danger' : 'btn-primary'}`} href={smsHref} style={{ width: '100%' }}>
-          {t('open_sms')}
-        </a>
-      ) : (
+      {sms.length > 0 ? (
+        <div className="sms-list">
+          {sms.map((item, i) => (
+            <a
+              key={item.contactId}
+              className={`btn ${i === 0 ? (isRed ? 'btn-danger' : 'btn-primary') : 'btn-secondary'}`}
+              href={item.href}
+              data-opened={item.opened}
+              style={{ width: '100%', marginTop: i === 0 ? 0 : '0.6rem' }}
+              onClick={() => g.markSmsOpened(item.contactId)}
+            >
+              {item.opened ? '✓ ' : ''}
+              {lang === 'sw' ? 'Tuma SMS kwa' : 'Send SMS to'} {roleLabel(item.role)}
+              {[item.role, roleLabel(item.role), 'family', 'familia'].some(
+                (r) => r.toLowerCase() === item.name.trim().toLowerCase(),
+              )
+                ? ''
+                : ` · ${item.name}`}
+            </a>
+          ))}
+        </div>
+      ) : !g.redAcknowledged ? (
         <Button
           variant={isRed ? 'danger' : 'primary'}
           style={{ width: '100%' }}
@@ -97,7 +147,7 @@ export function AlertPage() {
         >
           {lang === 'sw' ? 'Andaa SMS tena' : 'Prepare SMS again'}
         </Button>
-      )}
+      ) : null}
 
       {(g.recheck.status === 'due' || g.recheck.status === 'scheduled') && !isRed ? (
         <Button variant="secondary" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/bp')}>
@@ -105,14 +155,28 @@ export function AlertPage() {
         </Button>
       ) : null}
 
-      {isRed ? (
-        <Button
-          variant="ghost"
-          style={{ width: '100%', marginTop: '0.75rem' }}
-          onClick={() => void g.acknowledgeActiveRed().then(() => nav('/home'))}
-        >
-          {lang === 'sw' ? 'Nimesaidika · Rudi' : 'I’m okay now · Back'}
-        </Button>
+      {isRed && !g.redAcknowledged ? (
+        <div className="ack-group" style={{ marginTop: '1rem' }}>
+          <p className="soft-note" style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+            {lang === 'sw'
+              ? 'Hali ya RED inabaki hadi mtu athibitishe anachukua hatua.'
+              : 'RED stays on until someone confirms they are acting.'}
+          </p>
+          <Button
+            variant={g.chpReply ? 'primary' : 'secondary'}
+            style={{ width: '100%' }}
+            onClick={() => void g.acknowledgeActiveRed('chp_replied').then(() => nav('/home'))}
+          >
+            {lang === 'sw' ? 'CHP wangu amejibu' : 'My CHP replied'}
+          </Button>
+          <Button
+            variant="secondary"
+            style={{ width: '100%', marginTop: '0.6rem' }}
+            onClick={() => void g.acknowledgeActiveRed('mother_on_the_way').then(() => nav('/home'))}
+          >
+            {lang === 'sw' ? 'Niko njiani kwenda kituo' : 'I’m on my way to the facility'}
+          </Button>
+        </div>
       ) : (
         <Button variant="ghost" style={{ width: '100%', marginTop: '0.75rem' }} onClick={() => nav('/home')}>
           {t('go_home')}

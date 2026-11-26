@@ -153,9 +153,13 @@ export interface AlertRecord {
   tsMs: number;
   level: Exclude<TriageLevel, 'GREEN' | 'UNKNOWN'>;
   firedRules: RuleId[];
+  /** Reason codes from the triage result, so a sticky RED can still explain itself. */
+  reasons?: string[];
   notified: { contactId: string; method: 'sms_link'; atMs: number }[];
   /** RED stays active until this is set. */
   acknowledgedAtMs?: number;
+  /** Who confirmed someone is acting: CHP reply, mother on her way, or a clinician. */
+  acknowledgedBy?: 'chp_replied' | 'mother_on_the_way' | 'clinician_cleared';
   outcome?: 'resolved' | 'went_to_facility' | 'false_alarm';
 }
 

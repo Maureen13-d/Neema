@@ -161,7 +161,7 @@ export function Harness() {
       level,
       firedRules: triage.firedRules,
       motherName: 'Demo',
-      reasonCode: triage.reasons[0] ?? 'alert',
+      reasons: triage.reasons,
       ...(locationUrl ? { locationUrl } : {}),
     };
     const { alert, smsLinks } = await raiseAlert(draft, contacts, {

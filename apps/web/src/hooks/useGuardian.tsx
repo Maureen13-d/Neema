@@ -12,9 +12,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { SymptomCode, TriageResult, VitalsSample } from '@neema/core';
+import type { RuleId, Stage, SymptomCode, TriageResult, VitalsSample } from '@neema/core';
 import { getMessageText } from '../services/speech';
-import { createSimulatorBand } from '../services/simulatorBand';
+import { createSimulatorBand, isSimulatorBand } from '../services/simulatorBand';
 import { createWebBluetoothBand } from '../services/webBluetoothBand';
 import { createVitalsPipeline } from '../services/vitalsPipeline';
 import { runTriage } from '../services/triageRunner';
@@ -27,11 +27,62 @@ import {
   type RecheckState,
 } from '../services/recheck';
 import { runAlertChain } from '../services/alertChain';
-import { acknowledgeRed } from '../services/alerts';
+import { acknowledgeRed, activeRedAlert, markNotified, type AcknowledgedBy } from '../services/alerts';
+import { loadProfile } from '../services/passport';
+import { resetDemoData, seedDemoStep, type DemoStep } from '../services/demoPlayer';
 import type { EscalationHandle } from '../services/escalation';
 import { db } from '../storage/db';
 
 export type BandMode = 'simulator' | 'bluetooth';
+
+/** One prefilled SMS the mother can open (a web app cannot send silently). */
+export interface PendingSms {
+  contactId: string;
+  name: string;
+  role: 'chp' | 'family' | 'supervisor';
+  href: string;
+  opened: boolean;
+}
+
+/** A reply from the CHP. In demo mode it is scripted (project doc §10). */
+export interface ChpReply {
+  name: string;
+  text: string;
+  atMs: number;
+  scripted: boolean;
+}
+
+/** After acknowledgement, the same evidence must not re-raise a new alert for this long. */
+const ACK_QUIET_MS = 30 * 60_000;
+/** Survives a page reload during the demo (session only, cleared by Reset). */
+const DEMO_KEY = 'neema.demo.v1';
+
+interface SavedDemo {
+  step: DemoStep;
+  stage: Stage;
+  gestationWeeks?: number;
+}
+
+function loadSavedDemo(): SavedDemo | null {
+  try {
+    const raw = sessionStorage.getItem(DEMO_KEY);
+    return raw ? (JSON.parse(raw) as SavedDemo) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDemo(demo: SavedDemo | null): void {
+  try {
+    if (demo) sessionStorage.setItem(DEMO_KEY, JSON.stringify(demo));
+    else sessionStorage.removeItem(DEMO_KEY);
+  } catch {
+    // private mode: the demo still works until reload
+  }
+}
+
+/** Scripted CHP reply delay after the mother opens the SMS in demo mode. */
+const SCRIPTED_REPLY_MS = 6_000;
 
 interface GuardianState {
   sample: VitalsSample | null;
@@ -42,7 +93,15 @@ interface GuardianState {
   loading: boolean;
   error: string | null;
   pendingSmsHref: string | null;
+  /** Every SMS prepared for the active alert, in the order to send them. */
+  pendingSms: PendingSms[];
   activeAlertId: string | null;
+  /** True when RED is still showing but someone has confirmed they are acting on it. */
+  redAcknowledged: boolean;
+  chpReply: ChpReply | null;
+  /** Stage used for triage (from the Passport, or the demo step). */
+  stage: Stage;
+  demoStep: DemoStep | null;
   lastChainNote: string | null;
   recheck: RecheckState;
   recheckDueInSec: number | null;
@@ -52,7 +111,16 @@ interface GuardianState {
   saveBp: (systolic: number, diastolic: number) => Promise<TriageResult | null>;
   saveSymptoms: (codes: SymptomCode[]) => Promise<TriageResult | null>;
   refreshTriage: (sos?: boolean) => Promise<TriageResult | null>;
-  acknowledgeActiveRed: () => Promise<void>;
+  /** Clears RED. Only a CHP reply, the mother on her way, or a clinician may do this. */
+  acknowledgeActiveRed: (by: AcknowledgedBy) => Promise<void>;
+  /** App SOS (R9). The band's 3 s long-press does the same. */
+  pressSos: () => Promise<TriageResult | null>;
+  /** Records that the mother opened one SMS link; in demo mode schedules the CHP reply. */
+  markSmsOpened: (contactId: string) => void;
+  /** Demo mode: seed a scripted scenario step and run the full chain. */
+  playDemo: (step: DemoStep) => Promise<TriageResult | null>;
+  /** Demo mode: clear readings and alerts and return to a calm band. */
+  resetDemo: () => Promise<void>;
   clearPendingSms: () => void;
   clearError: () => void;
   openPendingSms: () => void;
@@ -71,6 +139,14 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const lastLevel = useRef<string | null>(null);
   const chainInFlight = useRef(false);
   const refreshRef = useRef<(sos?: boolean) => Promise<TriageResult | null>>(async () => null);
+  const savedDemo = useRef(loadSavedDemo()).current;
+  const stageOverrideRef = useRef<{ stage: Stage; gestationWeeks?: number } | null>(
+    savedDemo
+      ? { stage: savedDemo.stage, ...(savedDemo.gestationWeeks !== undefined ? { gestationWeeks: savedDemo.gestationWeeks } : {}) }
+      : null,
+  );
+  const ackRef = useRef<{ rules: RuleId[]; atMs: number } | null>(null);
+  const replyTimerRef = useRef<number | null>(null);
 
   const [sample, setSample] = useState<VitalsSample | null>(null);
   const [triage, setTriage] = useState<TriageResult | null>(null);
@@ -78,7 +154,11 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const [bandMode, setBandMode] = useState<BandMode>('simulator');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingSmsHref, setPendingSmsHref] = useState<string | null>(null);
+  const [pendingSms, setPendingSms] = useState<PendingSms[]>([]);
+  const [chpReply, setChpReply] = useState<ChpReply | null>(null);
+  const [redAcknowledged, setRedAcknowledged] = useState(false);
+  const [stage, setStage] = useState<Stage>('pregnancy');
+  const [demoStep, setDemoStep] = useState<DemoStep | null>(savedDemo?.step ?? null);
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
   const [lastChainNote, setLastChainNote] = useState<string | null>(null);
   const [recheck, setRecheck] = useState<RecheckState>(recheckRef.current.getState());
@@ -117,6 +197,20 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       setRecheck(recheckRef.current.getState());
     }
 
+    // Someone already confirmed they are acting on this RED: do not re-alert for
+    // the same evidence (a BP reading stays in the 30-minute window after the ack).
+    const ack = ackRef.current;
+    const sameEvidence =
+      ack !== null &&
+      Date.now() - ack.atMs < ACK_QUIET_MS &&
+      !result.firedRules.includes('R9_SOS') &&
+      result.firedRules
+        .filter((r) => r !== 'R12_NOTHING_CONCERNING' && r !== 'R11_SIGNAL_INVALID')
+        .every((r) => ack.rules.includes(r));
+    setRedAcknowledged(result.level === 'RED' && sameEvidence);
+    if (sameEvidence && result.level !== 'GREEN') return;
+    if (result.level === 'GREEN') ackRef.current = null;
+
     if (
       (result.level === 'RED' || result.level === 'YELLOW') &&
       prev !== result.level &&
@@ -126,7 +220,16 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       try {
         const chain = await runAlertChain(result, { allowDemo: true, skipConsent: true });
         if (chain) {
-          setPendingSmsHref(chain.primarySmsHref);
+          setChpReply(null);
+          setPendingSms(
+            chain.smsLinks.map(({ contact, href }) => ({
+              contactId: contact.id,
+              name: contact.name,
+              role: contact.role,
+              href,
+              opened: false,
+            })),
+          );
           setActiveAlertId(chain.alertId);
           escalationRef.current?.stop();
           escalationRef.current = chain.escalation;
@@ -147,9 +250,17 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
   const refreshTriage = useCallback(
     async (sos = false) => {
       try {
+        // Stage drives rule sets (R7 is postpartum-only, R10 needs gestation weeks).
+        // ASSUMPTION: an encrypted profile cannot be read here without the PIN, so it
+        // falls back to pregnancy with no gestation week (R10 then stays silent).
+        const override = stageOverrideRef.current;
+        const profile = override ? null : await loadProfile().catch(() => null);
+        const activeStage: Stage = override?.stage ?? profile?.stage ?? 'pregnancy';
+        const weeks = override ? override.gestationWeeks : profile?.gestationWeeks;
+        setStage(activeStage);
         const result = await runTriage({
-          stage: 'pregnancy',
-          gestationWeeks: 32,
+          stage: activeStage,
+          ...(activeStage === 'pregnancy' && weeks !== undefined ? { gestationWeeks: weeks } : {}),
           sosActive: sos,
           markedResting: true,
           timeZone: 'Africa/Nairobi',
@@ -171,6 +282,20 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     bindBand(bandRef.current);
     return () => unsubRef.current?.();
   }, [bindBand]);
+
+  // A sticky RED survives reloads: restore its id so it can be acknowledged.
+  useEffect(() => {
+    void activeRedAlert().then((alert) => {
+      if (alert) {
+        setActiveAlertId(alert.id);
+        lastLevel.current = 'RED';
+      }
+      void refreshRef.current(false);
+    });
+    return () => {
+      if (replyTimerRef.current) window.clearTimeout(replyTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -227,8 +352,23 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
     [bindBand],
   );
 
-  const value = useMemo<GuardianState>(
-    () => ({
+  const value = useMemo<GuardianState>(() => {
+  const markSmsOpened = (contactId: string) => {
+      setPendingSms((list) => list.map((p) => (p.contactId === contactId ? { ...p, opened: true } : p)));
+      if (activeAlertId) void markNotified(activeAlertId, contactId);
+      const opened = pendingSms.find((p) => p.contactId === contactId);
+      // Demo only: the CHP phone "replies". In the field the reply arrives as a real SMS
+      // and the mother taps "My CHP replied".
+      if (demoStep && opened?.role === 'chp' && triage?.level === 'RED') {
+        if (replyTimerRef.current) window.clearTimeout(replyTimerRef.current);
+        replyTimerRef.current = window.setTimeout(() => {
+          setChpReply({ name: opened.name, text: 'Nakuja sasa. Kaa tayari.', atMs: Date.now(), scripted: true });
+          replyTimerRef.current = null;
+        }, SCRIPTED_REPLY_MS);
+      }
+    };
+
+    return {
       sample,
       triage,
       message: triage ? getMessageText(triage.messageKey) : 'Connect your band to begin watching.',
@@ -236,8 +376,13 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       bandMode,
       loading,
       error,
-      pendingSmsHref,
+      pendingSmsHref: pendingSms.find((p) => !p.opened)?.href ?? pendingSms[0]?.href ?? null,
+      pendingSms,
       activeAlertId,
+      redAcknowledged,
+      chpReply,
+      stage,
+      demoStep,
       lastChainNote,
       recheck,
       recheckDueInSec,
@@ -293,31 +438,117 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
         }
       },
       refreshTriage,
-      async acknowledgeActiveRed() {
-        if (!activeAlertId) return;
-        await acknowledgeRed(activeAlertId);
+      async acknowledgeActiveRed(by) {
+        const alertId = activeAlertId ?? (await activeRedAlert())?.id;
+        if (!alertId) return;
+        const row = await db.alerts.get(alertId);
+        await acknowledgeRed(alertId, Date.now(), by);
+        ackRef.current = { rules: row?.firedRules ?? [], atMs: Date.now() };
         escalationRef.current?.stop();
         escalationRef.current = null;
         setActiveAlertId(null);
-        setPendingSmsHref(null);
-        setLastChainNote('RED acknowledged.');
+        setPendingSms([]);
+        setLastChainNote(
+          by === 'chp_replied'
+            ? 'Your CHP is on the way.'
+            : by === 'mother_on_the_way'
+              ? 'You are on your way. Keep your phone with you.'
+              : 'Cleared by a clinician.',
+        );
         lastLevel.current = null;
         await refreshTriage(false);
       },
+      async pressSos() {
+        const band = bandRef.current;
+        if (isSimulatorBand(band) && band.isConnected()) band.pressSos();
+        ackRef.current = null;
+        return refreshTriage(true);
+      },
+      markSmsOpened,
+      async playDemo(step) {
+        setLoading(true);
+        setError(null);
+        try {
+          const plan = await seedDemoStep(step);
+          stageOverrideRef.current = {
+            stage: plan.stage,
+            ...(plan.gestationWeeks !== undefined ? { gestationWeeks: plan.gestationWeeks } : {}),
+          };
+          if (step !== 'B_recheck') {
+            escalationRef.current?.stop();
+            escalationRef.current = null;
+            recheckRef.current.cancel();
+            setActiveAlertId(null);
+            setPendingSms([]);
+            setChpReply(null);
+            ackRef.current = null;
+            lastLevel.current = null;
+          }
+          setDemoStep(step);
+          saveDemo({ step, ...stageOverrideRef.current! });
+          if (!bandRef.current.isConnected()) {
+            const sim = createSimulatorBand(plan.bandScenario);
+            bindBand(sim);
+            await sim.connect();
+            setBandMode('simulator');
+            setConnected(true);
+          } else if (isSimulatorBand(bandRef.current)) {
+            await bandRef.current.sendCommand({ kind: 'demo', scenario: plan.bandScenario });
+          }
+          const result = await refreshTriage(false);
+          if (step === 'B_recheck' && result && result.level !== 'YELLOW') {
+            recheckRef.current.cancel();
+            setRecheck(recheckRef.current.getState());
+            setRecheckDueInSec(null);
+          }
+          return result;
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+          return null;
+        } finally {
+          setLoading(false);
+        }
+      },
+      async resetDemo() {
+        await resetDemoData();
+        stageOverrideRef.current = null;
+        escalationRef.current?.stop();
+        escalationRef.current = null;
+        recheckRef.current.cancel();
+        setRecheck(recheckRef.current.getState());
+        setRecheckDueInSec(null);
+        setActiveAlertId(null);
+        setPendingSms([]);
+        setChpReply(null);
+        setDemoStep(null);
+        saveDemo(null);
+        setRedAcknowledged(false);
+        ackRef.current = null;
+        lastLevel.current = null;
+        if (isSimulatorBand(bandRef.current)) {
+          await bandRef.current.sendCommand({ kind: 'demo', scenario: 1 });
+        }
+        setLastChainNote(null);
+        await refreshTriage(false);
+      },
       clearPendingSms() {
-        setPendingSmsHref(null);
+        setPendingSms([]);
       },
       clearError() {
         setError(null);
       },
       openPendingSms() {
-        if (pendingSmsHref) window.location.href = pendingSmsHref;
+        const next = pendingSms.find((p) => !p.opened) ?? pendingSms[0];
+        if (!next) return;
+        markSmsOpened(next.contactId);
+        window.location.href = next.href;
       },
       async setDemoScenario(n) {
         await bandRef.current.sendCommand({ kind: 'demo', scenario: n });
         setLastChainNote(`Simulator scenario ${n} active.`);
       },
-    }),
+    };
+  },
     [
       sample,
       triage,
@@ -325,13 +556,19 @@ export function GuardianProvider({ children }: { children: ReactNode }) {
       bandMode,
       loading,
       error,
-      pendingSmsHref,
+      pendingSms,
       activeAlertId,
+      redAcknowledged,
+      chpReply,
+      stage,
+      demoStep,
       lastChainNote,
       recheck,
       recheckDueInSec,
       connectBand,
       refreshTriage,
+      bindBand,
+      pendingSms,
     ],
   );
 

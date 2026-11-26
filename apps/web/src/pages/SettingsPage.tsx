@@ -49,25 +49,46 @@ export function SettingsPage() {
         </p>
       </div>
 
-      {g.bandMode === 'simulator' && g.connected ? (
-        <div className="panel" style={{ marginBottom: '1rem' }}>
-          <strong>{lang === 'sw' ? 'Jaribio la bendi' : 'Band practice'}</strong>
-          <p className="soft-note" style={{ margin: '0.4rem 0 0.65rem' }}>
+      {ready && !ready.fieldReady ? (
+        <div className="panel" style={{ marginBottom: '1rem' }} data-testid="demo-panel">
+          <strong>{lang === 'sw' ? 'Maonyesho (hali za majaribio)' : 'Stage demo (scripted scenarios)'}</strong>
+          <p className="soft-note" style={{ margin: '0.4rem 0 0' }}>
             {lang === 'sw'
-              ? 'Bendi halisi inakuja. Hapa unaweza kujaribu hali tofauti.'
-              : 'Physical band coming soon. Practice different states here.'}
+              ? 'Kila hali inafuta vipimo na tahadhari kwenye simu hii, kisha inaendesha mnyororo kamili: sauti, SMS na ufuatiliaji.'
+              : 'Each scenario clears readings and alerts on this phone, then runs the real chain: voice, SMS and escalation.'}
           </p>
-          <div className="btn-row" style={{ flexWrap: 'wrap' }}>
-            <Button variant="ghost" onClick={() => void g.setDemoScenario(1)}>
-              {lang === 'sw' ? 'Tulivu' : 'Calm'}
+          <div className="demo-grid">
+            <Button variant="secondary" onClick={() => void g.playDemo('A').then(() => nav('/home'))}>
+              A · {lang === 'sw' ? 'Usiku mwema' : 'Good night'}
             </Button>
-            <Button variant="ghost" onClick={() => void g.setDemoScenario(2)}>
-              {lang === 'sw' ? 'Mabadiliko' : 'Drift'}
+            <Button variant="secondary" onClick={() => void g.playDemo('B_warning').then(() => nav('/home'))}>
+              B1 · {lang === 'sw' ? 'Onyo 146/92' : 'Warning 146/92'}
             </Button>
-            <Button variant="ghost" onClick={() => void g.setDemoScenario(3)}>
-              {lang === 'sw' ? 'Homa' : 'Fever'}
+            <Button variant="secondary" onClick={() => void g.playDemo('B_recheck').then(() => nav('/home'))}>
+              B2 · {lang === 'sw' ? 'Pima tena 138/88' : 'Recheck 138/88'}
+            </Button>
+            <Button variant="secondary" onClick={() => void g.playDemo('C').then(() => nav('/alert'))}>
+              C · {lang === 'sw' ? 'Dharura' : 'Emergency'}
+            </Button>
+            <Button variant="secondary" onClick={() => void g.playDemo('D').then(() => nav('/alert'))}>
+              D · {lang === 'sw' ? 'Homa baada ya kujifungua' : 'Postpartum fever'}
+            </Button>
+            <Button variant="ghost" onClick={() => void g.resetDemo()}>
+              {lang === 'sw' ? 'Anza upya' : 'Reset'}
             </Button>
           </div>
+          {g.demoStep ? (
+            <p className="soft-note" style={{ marginTop: '0.6rem' }} data-testid="demo-status">
+              {lang === 'sw' ? 'Hali' : 'Running'}: {g.demoStep} · {g.triage?.level ?? '—'} ·{' '}
+              {g.stage === 'postpartum'
+                ? lang === 'sw'
+                  ? 'baada ya kujifungua'
+                  : 'postpartum'
+                : lang === 'sw'
+                  ? 'mimba'
+                  : 'pregnancy'}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

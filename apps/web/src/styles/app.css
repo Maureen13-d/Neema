@@ -1266,3 +1266,80 @@ input[type='checkbox'] {
     margin-top: 1.4rem;
   }
 }
+
+/* ---------- SOS (R9) ---------- */
+
+.sos-btn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 58px;
+  margin-top: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(216, 52, 82, 0.45);
+  background: var(--glass-strong);
+  color: var(--danger-deep);
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.sos-btn__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--sos-progress, 0%);
+  background: linear-gradient(135deg, var(--danger-deep), var(--danger));
+}
+
+.sos-btn__label {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.sos-btn__label strong {
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.sos-btn__label small {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.sos-btn[data-armed='true'] .sos-btn__label,
+.sos-btn[data-armed='true'] .sos-btn__label small {
+  color: #fff;
+}
+
+.sos-btn:focus-visible {
+  outline: 3px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.chp-reply {
+  border-color: rgba(31, 157, 116, 0.45);
+  background: rgba(31, 157, 116, 0.1);
+}
+
+.btn[data-opened='true'] {
+  opacity: 0.8;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.65rem;
+}
+
+.demo-grid .btn {
+  min-height: 48px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+}
