@@ -1343,3 +1343,102 @@ input[type='checkbox'] {
   padding: 0.6rem 0.8rem;
   font-size: 0.9rem;
 }
+
+/* Companion avatar */
+.companion {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0 1rem;
+  --companion-core: #c4b8ff;
+  --companion-edge: #6558f5;
+}
+.companion[data-state='calm'] {
+  --companion-core: #c8f0e0;
+  --companion-edge: #1f9d74;
+}
+.companion[data-state='watchful'] {
+  --companion-core: #ffe4a8;
+  --companion-edge: #f7a93b;
+}
+.companion[data-state='urgent'],
+.companion[data-state='waiting'] {
+  --companion-core: #ffc0cc;
+  --companion-edge: #d83452;
+}
+.companion__svg {
+  width: 96px;
+  height: 96px;
+  filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--companion-edge) 28%, transparent));
+  animation: companion-breathe 3.6s ease-in-out infinite;
+}
+.companion[data-state='urgent'] .companion__svg {
+  animation: companion-pulse 1.4s ease-in-out infinite;
+}
+.companion__label {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+@keyframes companion-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.03); }
+}
+@keyframes companion-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* Body map */
+.body-map__svg {
+  width: min(100%, 260px);
+  display: block;
+  margin-inline: auto;
+}
+.body-map__silhouette {
+  fill: color-mix(in srgb, var(--primary) 10%, white);
+  stroke: color-mix(in srgb, var(--primary) 35%, transparent);
+  stroke-width: 1.2;
+}
+.body-map__hit {
+  fill: color-mix(in srgb, var(--primary) 18%, white);
+  stroke: var(--primary);
+  stroke-width: 1.4;
+  cursor: pointer;
+  transition: fill 160ms ease, transform 160ms ease;
+}
+.body-map__hit[data-on='true'] {
+  fill: var(--primary);
+  stroke: var(--primary-deep);
+}
+.body-map__label {
+  font-size: 4.2px;
+  fill: var(--ink);
+  pointer-events: none;
+  font-weight: 700;
+}
+.body-map__hit[data-on='true'] + .body-map__label {
+  fill: white;
+}
+
+/* Signing slot placeholder */
+.signing-slot {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1.1rem;
+  background: var(--glass-strong);
+  border: 1px dashed color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.signing-slot__frame {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--tint);
+  color: var(--primary-deep);
+}

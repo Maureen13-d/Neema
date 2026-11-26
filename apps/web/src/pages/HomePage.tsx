@@ -1,13 +1,19 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { avatarState } from '@neema/core';
 import { useGuardian } from '../hooks/useGuardian';
 import { useLocale } from '../hooks/useLocale';
 import { useToday } from '../hooks/useToday';
+import { latestCheckInToday } from '../services/checkIn';
+import { listChase } from '../services/followUp';
 import { getMessageTextFor } from '../services/speech';
 import { recheckDelayMs } from '../services/recheck';
+import { AvatarCompanion } from '../ui/AvatarCompanion';
 import { BrandMark } from '../ui/BrandMark';
 import { LangToggle } from '../ui/LangToggle';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { SigningSlot } from '../ui/SigningSlot';
 import { levelLabel } from '../ui/levelLabel';
 import { SosButton } from '../ui/SosButton';
 import {
@@ -72,6 +78,17 @@ export function HomePage() {
   const alertActive = level === 'RED' || level === 'YELLOW';
   const recheckDue = g.recheck.status === 'due';
   const recheckScheduled = g.recheck.status === 'scheduled';
+  const [awaitingArrival, setAwaitingArrival] = useState(false);
+  const [checkInDone, setCheckInDone] = useState(false);
+
+  useEffect(() => {
+    void listChase().then((open) => {
+      setAwaitingArrival(open.some((f) => f.stage === 'chase' || f.stage === 'act'));
+    });
+    void latestCheckInToday().then((c) => setCheckInDone(Boolean(c)));
+  }, [level, g.activeAlertId]);
+
+  const companion = avatarState(level, awaitingArrival && level === 'RED');
 
   const headline =
     level === 'GREEN'
@@ -151,6 +168,13 @@ export function HomePage() {
       to: '/symptoms',
       done: today.symptomsToday,
     },
+    {
+      key: 'checkin',
+      title: lang === 'sw' ? 'Angalia leo' : 'Daily check-in',
+      meta: checkInDone ? todayWord : t('not_yet_today'),
+      to: '/check-in',
+      done: checkInDone,
+    },
     { key: 'band', title: t('band'), meta: bandMeta, to: '/vitals', icon: <IconBand /> },
     { key: 'nurse', title: t('nurse_title'), meta: t('nurse_sub'), to: '/summary', icon: <IconQr /> },
   ];
@@ -193,6 +217,12 @@ export function HomePage() {
               {name.charAt(0).toUpperCase()}
             </button>
           </div>
+
+          <AvatarCompanion state={companion} lang={lang} />
+
+          {g.triage && alertActive ? (
+            <SigningSlot messageKey={g.triage.messageKey} lang={lang} />
+          ) : null}
 
           <div className="hero-card" data-level={level} aria-live="polite">
             <span className="hero-card__pill">

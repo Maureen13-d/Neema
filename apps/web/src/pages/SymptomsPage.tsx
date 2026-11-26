@@ -4,15 +4,17 @@ import type { SymptomCode } from '@neema/core';
 import { useGuardian } from '../hooks/useGuardian';
 import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
+import { BodyMap } from '../ui/BodyMap';
 import { Button } from '../ui/Button';
 import { LoadingScreen } from '../ui/LoadingScreen';
 
-/** Tap-to-select how she feels. */
+/** Tap-to-select how she feels, with an optional body map. */
 export function SymptomsPage() {
   const g = useGuardian();
   const nav = useNavigate();
   const { t, lang } = useLocale();
   const [selected, setSelected] = useState<SymptomCode[]>([]);
+  const [showMap, setShowMap] = useState(true);
 
   const options: { code: SymptomCode; label: string }[] =
     lang === 'sw'
@@ -43,6 +45,16 @@ export function SymptomsPage() {
     setSelected((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
   }
 
+  function toggleCodes(codes: SymptomCode[]) {
+    setSelected((prev) => {
+      const allOn = codes.every((c) => prev.includes(c));
+      if (allOn) return prev.filter((c) => !codes.includes(c));
+      const next = new Set(prev);
+      for (const c of codes) next.add(c);
+      return [...next];
+    });
+  }
+
   async function save() {
     if (selected.length === 0) return;
     const result = await g.saveSymptoms(selected);
@@ -58,8 +70,27 @@ export function SymptomsPage() {
         {t('how_feel')}
       </h1>
       <p className="screen-sub">
-        {lang === 'sw' ? 'Gusa yote yanayokufaa.' : 'Tap everything that fits.'}
+        {lang === 'sw' ? 'Gusa yote yanayokufaa — au tumia ramani ya mwili.' : 'Tap everything that fits — or use the body map.'}
       </p>
+
+      <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
+        <Button variant="ghost" onClick={() => setShowMap((v) => !v)}>
+          {showMap
+            ? lang === 'sw'
+              ? 'Ficha ramani'
+              : 'Hide body map'
+            : lang === 'sw'
+              ? 'Onyesha ramani'
+              : 'Show body map'}
+        </Button>
+      </div>
+
+      {showMap ? (
+        <div className="panel" style={{ marginBottom: '1rem' }}>
+          <BodyMap selected={selected} onToggleCodes={toggleCodes} lang={lang} />
+        </div>
+      ) : null}
+
       <div className="chip-grid">
         {options.map((opt) => (
           <button

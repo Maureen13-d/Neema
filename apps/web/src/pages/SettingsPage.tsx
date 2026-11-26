@@ -112,6 +112,17 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => nav('/bp')}>
           {t('add_bp')}
         </Button>
+        <Button variant="secondary" onClick={() => nav('/check-in')}>
+          {lang === 'sw' ? 'Angalia leo' : 'Check-in'}
+        </Button>
+      </div>
+      <div className="btn-row" style={{ marginTop: '0.75rem' }}>
+        <Button variant="secondary" onClick={() => nav('/epds')}>
+          EPDS
+        </Button>
+        <Button variant="secondary" onClick={() => nav('/passport')}>
+          {t('passport')}
+        </Button>
       </div>
       <div className="btn-row" style={{ marginTop: '0.75rem' }}>
         <Button variant="secondary" onClick={() => nav('/orient')}>

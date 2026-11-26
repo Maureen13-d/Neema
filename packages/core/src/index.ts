@@ -71,6 +71,13 @@ export { avatarState } from './avatar.js';
 
 export { REGION_TO_SYMPTOM } from './bodyMap.js';
 
+export {
+  EPDS_CUTOFF,
+  buildEpdsResult,
+  scoreEpds,
+  type EpdsScore,
+} from './epds.js';
+
 export { default as triageConfigJson } from './config/triage.config.json';
 export { default as swMessages } from './messages/sw.json';
 

@@ -16,6 +16,8 @@ import { SummaryPage } from '../pages/SummaryPage';
 import { ContactsPage } from '../pages/ContactsPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ChasePage } from '../pages/ChasePage';
+import { CheckInPage } from '../pages/CheckInPage';
+import { EpdsPage } from '../pages/EpdsPage';
 import { LocaleProvider } from '../hooks/useLocale';
 
 /** Mother-facing routes. No marketing landing — entry routes into care. */
@@ -107,6 +109,22 @@ export function AppRouter() {
               element={
                 <RequireAuth>
                   <ChasePage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/check-in"
+              element={
+                <RequireAuth>
+                  <CheckInPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/epds"
+              element={
+                <RequireAuth>
+                  <EpdsPage />
                 </RequireAuth>
               }
             />

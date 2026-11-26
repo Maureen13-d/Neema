@@ -29,6 +29,9 @@ const GLOSSES: Record<string, string> = {
   red_bleeding: 'You are seeing heavy bleeding. Go to a health facility now. Open the message to your health worker.',
   red_sos: 'SOS signal received. Open the message for help. Go to a facility if you can.',
   unknown_check_band: 'Check your band. There is no valid data right now.',
+  epds_ok: 'Thank you mama. Your answers are kept private on this phone.',
+  epds_talk_to_person:
+    'Please talk to a health worker or someone you trust. This is not a diagnosis — it is support.',
 };
 
 function loadDraftCatalog(): MessageEntry[] {

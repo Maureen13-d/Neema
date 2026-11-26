@@ -9,6 +9,8 @@
   "red_bleeding": "Unaona damu nyingi. Nenda kituo cha afya sasa. Fungua ujumbe kwa mhudumu wako.",
   "red_sos": "Ishara ya SOS imepokelewa. Fungua ujumbe kwa msaada. Nenda kituo cha afya ikiwa unaweza.",
   "unknown_check_band": "Angalia bendi yako. Hakuna data sahihi kwa sasa.",
+  "epds_ok": "Asante mama. Majibu yako yamehifadhiwa kwa faragha kwenye simu hii.",
+  "epds_talk_to_person": "Tafadhali zungumza na mhudumu wa afya au mtu unayemwamini. Hii si utambuzi — ni msaada.",
   "_meta": {
     "status": "draft",
     "needs": "Native Swahili speaker and CHP review before real use. TODO(clinician): first-aid wording."

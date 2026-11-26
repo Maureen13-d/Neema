@@ -24,6 +24,12 @@ export function QuickAddSheet({ open, onClose }: { open: boolean; onClose: () =>
   const options: { to: string; title: string; sub: string; icon: ReactNode }[] = [
     { to: '/bp', title: t('add_bp'), sub: t('add_bp_sub'), icon: <IconPressure /> },
     { to: '/symptoms', title: t('how_feel'), sub: t('feel_sub'), icon: <IconFeel /> },
+    {
+      to: '/check-in',
+      title: t('checkin_title'),
+      sub: t('checkin_sub'),
+      icon: <IconFeel />,
+    },
     { to: '/summary', title: t('nurse_title'), sub: t('nurse_sub'), icon: <IconQr /> },
   ];
 

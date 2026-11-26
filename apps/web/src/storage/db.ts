@@ -7,7 +7,9 @@ import Dexie, { type Table } from 'dexie';
 import type {
   AlertRecord,
   BpReading,
+  CheckIn,
   Contact,
+  EpdsResult,
   FollowUp,
   SymptomReport,
   VitalsMinute,
@@ -123,6 +125,8 @@ export class NeemaDb extends Dexie {
   messageReviews!: Table<MessageReviewRow, string>;
   hardwareReports!: Table<HardwareReportRow, string>;
   followups!: Table<FollowUp, string>;
+  checkins!: Table<CheckIn, string>;
+  epds!: Table<EpdsResult, string>;
 
   constructor() {
     super('neema-mama-passport');
@@ -180,6 +184,25 @@ export class NeemaDb extends Dexie {
       messageReviews: 'key',
       hardwareReports: 'id, startedAtMs',
       followups: 'alertId, stage',
+    });
+    this.version(5).stores({
+      profile: 'id',
+      vitalsMinutes: 'tsMs',
+      vitalsDaily: 'dayTsMs',
+      bp: 'id, tsMs',
+      symptoms: 'id, tsMs',
+      alerts: 'id, tsMs',
+      contacts: 'id, escalationOrder',
+      consent: 'id',
+      baseline: 'id',
+      visits: 'id, tsMs',
+      auth: 'id',
+      signOff: 'id',
+      messageReviews: 'key',
+      hardwareReports: 'id, startedAtMs',
+      followups: 'alertId, stage',
+      checkins: 'id, tsMs',
+      epds: 'id, tsMs',
     });
   }
 }

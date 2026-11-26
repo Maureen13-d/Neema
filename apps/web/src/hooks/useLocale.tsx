@@ -145,6 +145,11 @@ const COPY: Dict = {
   next: { en: 'Next', sw: 'Endelea' },
   continue: { en: 'Continue', sw: 'Endelea' },
   skip: { en: 'Skip', sw: 'Ruka' },
+  checkin_title: { en: 'Daily check-in', sw: 'Angalia leo' },
+  checkin_sub: {
+    en: 'Energy and mood — context only',
+    sw: 'Nguvu na hali — muktadha tu',
+  },
 };
 
 interface LocaleState {

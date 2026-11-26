@@ -3,6 +3,7 @@ import { useGuardian } from '../hooks/useGuardian';
 import { useLocale } from '../hooks/useLocale';
 import { BrandMark } from '../ui/BrandMark';
 import { Button } from '../ui/Button';
+import { SigningSlot } from '../ui/SigningSlot';
 import { StatusOrb } from '../ui/StatusOrb';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
@@ -90,6 +91,8 @@ export function AlertPage() {
         </div>
       ) : null}
 
+      {g.triage ? <SigningSlot messageKey={g.triage.messageKey} lang={lang} /> : null}
+
       <ol className="ritual-steps">
         <li>
           <span className="step-n">1</span>
@@ -101,19 +104,33 @@ export function AlertPage() {
         <li>
           <span className="step-n">2</span>
           <div>
-            <strong>{lang === 'sw' ? 'Tuma ujumbe' : 'Send a message'}</strong>
+            <strong>{lang === 'sw' ? 'Fungua ujumbe' : 'Open the message'}</strong>
             <p className="soft-note">
               {lang === 'sw'
-                ? 'Neema imeandaa SMS fupi kwa CHP yako.'
-                : 'Neema prepared a short SMS for your CHP.'}
+                ? 'Neema imeandaa SMS fupi kwa CHP yako — fungua na utume.'
+                : 'Neema prepared a short SMS for your CHP — open it and send.'}
             </p>
           </div>
         </li>
         <li>
           <span className="step-n">3</span>
           <div>
-            <strong>{lang === 'sw' ? 'Subiri jibu' : 'Wait for a reply'}</strong>
-            <p className="soft-note">{t('wait_reply')}</p>
+            <strong>
+              {isRed
+                ? lang === 'sw'
+                  ? 'Nenda kituo sasa'
+                  : 'Go to a facility now'
+                : lang === 'sw'
+                  ? 'Subiri jibu'
+                  : 'Wait for a reply'}
+            </strong>
+            <p className="soft-note">
+              {isRed
+                ? lang === 'sw'
+                  ? 'Usisubiri asubuhi. Fungua ujumbe na uende kituo cha afya.'
+                  : 'Do not wait for morning. Open the message and go to a health facility.'
+                : t('wait_reply')}
+            </p>
           </div>
         </li>
       </ol>

@@ -12,6 +12,9 @@ Recorded while implementing from the Backend Cursor brief.
 6. **Clinical thresholds** — Nested placeholders in `triage.config.json` (brief shape + sleep window / calibration / warning symptoms). Pending clinician review.
 7. **R10 gestation gate** — Brief table fires for any pregnancy; when `gestationWeeks` is provided we still require ≥ `reducedMovementMinGestationWeeks` (default 28).
 8. **Follow-up step interval** — Default 5 minutes between watch → warn → act → chase. Chase page has a demo “Advance step” control.
+9. **EPDS reverse items** — Items 1, 2, and 4 (1-indexed) are reverse-scored per the published English EPDS. Cut-offs: pregnancy 13, postpartum 10 (brief placeholders). EPDS never becomes a triage colour.
+10. **Offline shell** — `public/sw.js` caches the app shell only. No remote logging. First visit still needs network; later visits can open offline. Data already lives in IndexedDB.
+11. **SigningSlot** — Placeholder UI labelled “not KSL”. Production needs licensed Kenyan Sign Language clips.
 
 ## Explicitly out of scope (per brief)
 

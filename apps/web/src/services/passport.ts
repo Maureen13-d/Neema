@@ -3,7 +3,7 @@
  * Sensitive fields are encrypted at rest when a PIN is provided.
  */
 
-import type { Stage } from '@neema/core';
+import type { BirthPlan, Stage } from '@neema/core';
 import { decryptString, deriveKeyFromPin, encryptString } from '../storage/crypto';
 import { db, type ConsentRow, type ProfileRow } from '../storage/db';
 
@@ -24,7 +24,17 @@ export interface MamaProfile {
   medications?: string[];
   allergies?: string[];
   discreetMode?: boolean;
+  /** Birth preparedness checklist — not a risk score. */
+  birthPlan?: BirthPlan;
 }
+
+export const EMPTY_BIRTH_PLAN: BirthPlan = {
+  skilledAttendant: false,
+  bloodDonor: false,
+  savings: false,
+  companion: false,
+  transport: false,
+};
 
 export interface SaveProfileOptions {
   /** When set, payload is encrypted with a PIN-derived key. */
