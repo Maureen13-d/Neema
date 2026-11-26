@@ -473,3 +473,66 @@ body {
 .signing-slot__frame {
   background: var(--tint);
 }
+
+/* ---------- Leftover accents from the earlier lavender theme ---------- */
+
+.field input::placeholder {
+  color: #9a958c;
+}
+
+.check-row__chev {
+  color: #a19c93;
+}
+
+.dots span {
+  background: rgba(29, 39, 64, 0.18);
+}
+
+.dots span[data-on='true'] {
+  background: var(--primary);
+}
+
+.qr-placeholder {
+  border-color: rgba(29, 39, 64, 0.25);
+}
+
+.hero-card[data-level='UNKNOWN'] {
+  --hero-dot: #8d93a3;
+}
+
+/* Companion: the neutral state uses navy instead of lavender; status colours stay. */
+.companion {
+  --companion-core: #d9dfea;
+  --companion-edge: var(--primary);
+}
+
+/* ---------- Signed conversations ---------- */
+
+/* Chapter buttons hold a title, a line and a count, so they are cards, not pills. */
+.sign-session__chapter.btn {
+  border-radius: 20px;
+  background:
+    radial-gradient(80% 90% at 100% 0%, rgba(90, 128, 191, 0.35), transparent 65%),
+    linear-gradient(160deg, #24304d, #121a2c);
+  text-align: left;
+}
+
+.sign-session__chapter.btn:hover {
+  background:
+    radial-gradient(80% 90% at 100% 0%, rgba(90, 128, 191, 0.45), transparent 65%),
+    linear-gradient(160deg, #2c3b5e, #172036);
+}
+
+.sign-session__chapter-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+}
+
+.sign-session__stage {
+  border-color: var(--line);
+}
+
+.sign-session__tap.btn {
+  border-radius: 16px;
+}
