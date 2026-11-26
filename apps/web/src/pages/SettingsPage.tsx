@@ -128,6 +128,9 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => nav('/sign-off')}>
           {lang === 'sw' ? 'Sahihi ya kliniki' : 'Clinical sign-off'}
         </Button>
+        <Button variant="secondary" onClick={() => nav('/sign')}>
+          {lang === 'sw' ? 'Ishara' : 'Sign talk'}
+        </Button>
       </div>
       <div className="btn-row" style={{ marginTop: '0.75rem' }}>
         <Button variant="secondary" onClick={() => nav('/orient')}>

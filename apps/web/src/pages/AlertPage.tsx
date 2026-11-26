@@ -101,15 +101,20 @@ export function AlertPage() {
 
       {g.triage ? <SigningSlot messageKey={g.triage.messageKey} lang={lang} /> : null}
 
-      {g.triage ? (
-        <Button
-          variant="secondary"
-          style={{ width: '100%', marginBottom: '0.75rem' }}
-          onClick={() => void speakMessageKey(g.triage!.messageKey, { lang: lang === 'sw' ? 'sw-KE' : 'en-KE' })}
-        >
-          {lang === 'sw' ? 'Sikiliza ujumbe' : 'Hear message'}
+      <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
+        <Button variant="secondary" style={{ flex: 1 }} onClick={() => nav('/sign')}>
+          {lang === 'sw' ? 'Zungumza kwa ishara' : 'Talk in sign'}
         </Button>
-      ) : null}
+        {g.triage ? (
+          <Button
+            variant="secondary"
+            style={{ flex: 1 }}
+            onClick={() => void speakMessageKey(g.triage!.messageKey, { lang: lang === 'sw' ? 'sw-KE' : 'en-KE' })}
+          >
+            {lang === 'sw' ? 'Sikiliza' : 'Hear'}
+          </Button>
+        ) : null}
+      </div>
 
       <ol className="ritual-steps">
         <li>

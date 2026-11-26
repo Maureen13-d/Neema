@@ -281,6 +281,15 @@ export function HomePage() {
             <SigningSlot messageKey={g.triage.messageKey} lang={lang} />
           ) : null}
 
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ width: '100%', marginBottom: '0.5rem' }}
+            onClick={() => nav('/sign')}
+          >
+            {lang === 'sw' ? 'Zungumza kwa ishara (mstari kwa mstari)' : 'Talk in sign (line by line)'}
+          </button>
+
           <div className="hero-card" data-level={level} aria-live="polite">
             <span className="hero-card__pill">
               <i className="hero-card__dot" aria-hidden />

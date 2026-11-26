@@ -1470,3 +1470,95 @@ input[type='checkbox'] {
   color: var(--ink-muted);
   font-size: 0.9rem;
 }
+.asl-player--tall .asl-player__canvas {
+  height: min(46dvh, 320px);
+  min-height: 200px;
+}
+
+/* CareLoop-style signed conversation */
+.sign-session {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-bottom: 1.5rem;
+}
+.sign-session__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.sign-session__stage {
+  position: relative;
+  border-radius: 1.1rem;
+  background: var(--glass-strong);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  overflow: hidden;
+  padding-bottom: 0.75rem;
+}
+.sign-session__badge {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 1;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, white 88%, transparent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.sign-session__sentence {
+  margin: 0.65rem 1rem 0;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.sign-session__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0 0.5rem;
+}
+.sign-session__guide {
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.sign-session__guide--danger {
+  background: color-mix(in srgb, #b00020 10%, white);
+  border-color: color-mix(in srgb, #b00020 35%, transparent);
+  color: #7a0015;
+}
+.sign-session__answers {
+  margin-top: 0.25rem;
+}
+.sign-session__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+.sign-session__tap {
+  min-height: 3.25rem;
+  width: 100%;
+}
+.sign-session__grid .sign-session__tap:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.sign-session__about {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: var(--glass);
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+.sign-session__about summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}

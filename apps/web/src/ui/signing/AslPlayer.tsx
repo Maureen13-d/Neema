@@ -21,6 +21,13 @@ type Clip = {
   citation?: string;
 };
 
+export type SignedLine = {
+  id: string;
+  sentence: string;
+  label: string;
+  citation: string;
+};
+
 const SKIN = '#c4a484';
 const HAND = '#8a5a3c';
 const HAIR = '#3a2a22';
@@ -181,10 +188,21 @@ export function AslPlayer({
   clipId,
   paused = false,
   speed = 1,
+  replay = 0,
+  tall = false,
+  showCaption = true,
+  onLine,
+  onProblem,
 }: {
   clipId: string;
   paused?: boolean;
   speed?: number;
+  /** Bump to restart from frame 0. */
+  replay?: number;
+  tall?: boolean;
+  showCaption?: boolean;
+  onLine?: (line: SignedLine | null) => void;
+  onProblem?: (message: string) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [clip, setClip] = useState<Clip | null>(null);
@@ -194,6 +212,7 @@ export function AslPlayer({
     let cancelled = false;
     setClip(null);
     setProblem('');
+    onLine?.(null);
     void fetch(clipUrl(clipId))
       .then(async (res) => {
         if (!res.ok) throw new Error('Clip missing');
@@ -201,20 +220,30 @@ export function AslPlayer({
       })
       .then((body) => {
         if (cancelled) return;
-        setClip({
+        const next = {
           ...body,
           label: body.label ?? ASL_LABEL,
           citation: body.citation ?? ASL_CITATION,
+        };
+        setClip(next);
+        onLine?.({
+          id: next.id,
+          sentence: next.sentence,
+          label: next.label ?? ASL_LABEL,
+          citation: next.citation ?? ASL_CITATION,
         });
       })
       .catch(() => {
         if (cancelled) return;
-        setProblem('Signed line could not load.');
+        const message = 'Signed line could not load.';
+        setProblem(message);
+        onProblem?.(message);
+        onLine?.(null);
       });
     return () => {
       cancelled = true;
     };
-  }, [clipId]);
+  }, [clipId, onLine, onProblem]);
 
   useEffect(() => {
     const frames = clip?.frames ?? [];
@@ -243,10 +272,10 @@ export function AslPlayer({
     };
     handle = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(handle);
-  }, [clip, paused, speed]);
+  }, [clip, paused, speed, replay]);
 
   return (
-    <div className="asl-player">
+    <div className={tall ? 'asl-player asl-player--tall' : 'asl-player'}>
       <canvas
         ref={canvas}
         role="img"
@@ -254,7 +283,7 @@ export function AslPlayer({
         className="asl-player__canvas"
       />
       {problem ? <p className="asl-player__problem">{problem}</p> : null}
-      {clip ? (
+      {showCaption && clip ? (
         <p className="asl-player__caption soft-note">
           {clip.sentence} · {clip.label ?? ASL_LABEL}
         </p>
