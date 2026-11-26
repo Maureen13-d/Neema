@@ -5,6 +5,7 @@ import { BrandMark } from '../ui/BrandMark';
 import { LangToggle } from '../ui/LangToggle';
 import { useLocale } from '../hooks/useLocale';
 import { getAuthMeta, setPin, unlockWithPin } from '../services/auth';
+import { contactReadiness } from '../services/contacts';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { ErrorScreen } from '../ui/ErrorScreen';
 
@@ -27,7 +28,9 @@ export function UnlockPage() {
     try {
       if (mode === 'set') await setPin(pin);
       else await unlockWithPin(pin);
-      nav('/home');
+      // First-time setup: ask who to alert before anything else.
+      const { hasRealChp } = await contactReadiness();
+      nav(mode === 'set' && !hasRealChp ? '/contacts?setup=1' : '/home');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
